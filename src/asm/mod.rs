@@ -12,6 +12,8 @@ use self::parser::Label;
 
 type SymbolTable = HashMap<String, u32>;
 
+pub use lexer::Span;
+
 pub fn assemble(src: &str) -> Result<Vec<u8>> {
     let program_instructions = parser::parse(src)?;
     let data_offset = 0;

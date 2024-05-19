@@ -14,9 +14,22 @@ pub struct Span {
     pub byte_end: usize,
 }
 
+impl From<(Span, Span)> for Span {
+    fn from((start, end): (Span, Span)) -> Self {
+        Self {
+            row_start: start.row_start,
+            row_end: end.row_end,
+            col_start: start.col_start,
+            col_end: end.col_end,
+            byte_start: start.byte_start,
+            byte_end: end.byte_end,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum TokenKind {
-    KeywordLoadInt,
+    KeywordLoad,
     KeywordAdd,
     KeywordHult,
     Number(u32),
@@ -62,8 +75,8 @@ impl<'a> Lexer<'a> {
     }
 
     fn next(&mut self) -> Option<char> {
-        self.last_char = self.current.clone();
-        self.current = self.src.next().clone();
+        self.last_char = self.current;
+        self.current = self.src.next();
         match self.current {
             Some(c) if matches!(self.last_char, Some('\n')) => {
                 self.span.row_end += 1;
@@ -77,7 +90,7 @@ impl<'a> Lexer<'a> {
                 self.span.byte_end += 1;
                 Some(c)
             }
-            None => return None,
+            None => None,
         }
     }
 
@@ -102,7 +115,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn span(&mut self) -> Span {
-        let span = self.span.clone();
+        let span = self.span;
         self.span = Span {
             row_start: span.row_end,
             col_start: span.col_end,
@@ -131,7 +144,7 @@ impl<'a> Lexer<'a> {
         }
 
         let kind = match identifier.as_str() {
-            "loadint" => TokenKind::KeywordLoadInt,
+            "load" => TokenKind::KeywordLoad,
             "add" => TokenKind::KeywordAdd,
             "hult" => TokenKind::KeywordHult,
             _ => TokenKind::Identifier(identifier),
@@ -208,4 +221,5 @@ mod tests {
     }
 
     snapshot!(demo, "../samples/demo.asm");
+    snapshot!(main, "../samples/main.asm");
 }

@@ -1,5 +1,5 @@
 use crate::asm::lexer::{Span, Token, TokenKind};
-use crate::instructions::Instruction;
+use crate::instructions::{Data, Imm, Instruction, Opcode, Register, Type};
 use anyhow::{bail, Result};
 use std::iter::Peekable;
 use thiserror::Error;
@@ -40,87 +40,16 @@ pub enum ParserError {
     ExpectedDelimiter(TokenKind, Span),
     #[error("Expected percent sign at {}..{} but found {0:?}", .1.col_start, .1.col_end)]
     ExpectedPercentSign(TokenKind, Span),
+    #[error("Expected colon at {}..{} but found {0:?}", .1.col_start, .1.col_end)]
+    ExpectedColon(TokenKind, Span),
     #[error("Unexpected EOF")]
     UnexpectedEof,
-}
-
-#[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Reg {
-    R0 = 0,
-    R1 = 1,
-    R2 = 2,
-    R3 = 3,
-    R4 = 4,
-    R5 = 5,
-    R6 = 6,
-    R7 = 7,
-    R8 = 8,
-    R9 = 9,
-    R10 = 10,
-    R11 = 11,
-    R12 = 12,
-    R13 = 13,
-    R14 = 14,
-    R15 = 15,
-    R16 = 16,
-    R17 = 17,
-    R18 = 18,
-    R19 = 19,
-    R20 = 20,
-    R21 = 21,
-    R22 = 22,
-    R23 = 23,
-    R24 = 24,
-    R25 = 25,
-    R26 = 26,
-    R27 = 27,
-    R28 = 28,
-    R29 = 29,
-    R30 = 30,
-    R31 = 31,
-}
-
-impl TryFrom<(u8, Span)> for Reg {
-    type Error = ParserError;
-
-    fn try_from((value, span): (u8, Span)) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(Reg::R0),
-            1 => Ok(Reg::R1),
-            2 => Ok(Reg::R2),
-            3 => Ok(Reg::R3),
-            4 => Ok(Reg::R4),
-            5 => Ok(Reg::R5),
-            6 => Ok(Reg::R6),
-            7 => Ok(Reg::R7),
-            8 => Ok(Reg::R8),
-            9 => Ok(Reg::R9),
-            10 => Ok(Reg::R10),
-            11 => Ok(Reg::R11),
-            12 => Ok(Reg::R12),
-            13 => Ok(Reg::R13),
-            14 => Ok(Reg::R14),
-            15 => Ok(Reg::R15),
-            16 => Ok(Reg::R16),
-            17 => Ok(Reg::R17),
-            18 => Ok(Reg::R18),
-            19 => Ok(Reg::R19),
-            20 => Ok(Reg::R20),
-            21 => Ok(Reg::R21),
-            22 => Ok(Reg::R22),
-            23 => Ok(Reg::R23),
-            24 => Ok(Reg::R24),
-            25 => Ok(Reg::R25),
-            26 => Ok(Reg::R26),
-            27 => Ok(Reg::R27),
-            28 => Ok(Reg::R28),
-            29 => Ok(Reg::R29),
-            30 => Ok(Reg::R30),
-            31 => Ok(Reg::R31),
-            _ => Err(ParserError::RegisterOutOfBounds(value, span)),
-        }
-    }
+    #[error("Expected Right Bracket {0:?} but found {1:?}")]
+    ExpectedRightBracket(TokenKind, Span),
+    #[error("Expected Left Bracket {0:?} but found {1:?}")]
+    ExpectedLeftBracket(TokenKind, Span),
+    #[error("Expected Signed or Unsigned {0:?} but found {1:?}")]
+    ExpectedSign(TokenKind, Span),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -158,7 +87,7 @@ impl Text {
         };
         Self {
             label: Some(Label {
-                name: name.into(),
+                name,
                 span: label_token.span,
                 def: true,
             }),
@@ -225,6 +154,10 @@ impl Parser {
         self.tokens.peek()
     }
 
+    fn peek_kind(&mut self) -> Option<&TokenKind> {
+        self.peek().map(|t| &t.kind)
+    }
+
     fn push_text(&mut self, text: Text) {
         self.text_section.push(text)
     }
@@ -250,7 +183,7 @@ impl Parser {
         Ok(token)
     }
 
-    fn parse_reg(&mut self) -> Result<Reg> {
+    fn parse_reg(&mut self) -> Result<Register> {
         let _ = self.consume(&[TokenKind::PercentSign], ParserError::ExpectedPercentSign)?;
         let Some(token) = self.next() else {
             bail!(ParserError::UnexpectedEof);
@@ -259,113 +192,100 @@ impl Parser {
             bail!(ParserError::ExpectedNumber(token.kind, token.span));
         };
 
-        Ok(Reg::try_from((reg as u8, token.span))?)
+        Ok(Register::try_from((reg as u8, token.span))?)
     }
 
-    fn parse_u16(&mut self) -> Result<u16> {
-        let Some(token) = self.next() else {
+    fn parse_type(&mut self) -> Result<Type> {
+        let _ = self.consume(&[TokenKind::LeftBracket], ParserError::ExpectedLeftBracket)?;
+        let Some(sign_token) = self.next() else {
             bail!(ParserError::UnexpectedEof);
         };
-        let TokenKind::Number(value) = token.kind else {
-            bail!(ParserError::ExpectedNumber(token.kind, token.span));
+        let TokenKind::Identifier(ref t) = sign_token.kind else {
+            bail!(ParserError::ExpectedIdentifier(
+                sign_token.kind,
+                sign_token.span
+            ));
         };
-        Ok(value as u16)
+
+        let sign = &t[0..1];
+        let bits = &t[1..].parse::<u8>()?;
+
+        let _ = self.consume(
+            &[TokenKind::RightBracket],
+            ParserError::ExpectedRightBracket,
+        )?;
+        let r#type = match sign.to_lowercase().as_str() {
+            "i" => Type::I(*bits),
+            "u" => Type::U(*bits),
+            _ => bail!(ParserError::ExpectedSign(sign_token.kind, sign_token.span)),
+        };
+        Ok(r#type)
     }
 
-    fn parse_reg_u16(
-        &mut self,
-        token: Token,
-        instruction: impl Fn(u8, u8, u8) -> Instruction,
-    ) -> Result<()> {
-        let Span {
-            row_start,
-            col_start,
-            byte_start,
-            ..
-        } = token.span;
+    fn parse_value<T>(&mut self) -> Result<T>
+    where
+        T: std::convert::From<u32>,
+    {
+        let token = match self.next() {
+            Some(token) => token,
+            None => bail!(ParserError::UnexpectedEof),
+        };
+
+        let kind = match token.kind {
+            TokenKind::Number(value) => value,
+            _ => bail!(ParserError::ExpectedNumber(token.kind, token.span)),
+        };
+
+        Ok(T::from(kind))
+    }
+
+    fn parse_reg_imm(&mut self, token: Token, opcode: Opcode) -> Result<()> {
+        let r#type = self.parse_type()?;
         let reg = self.parse_reg()?;
-        let value = self.parse_u16()?;
-        let value_upper = (value >> 8) as u8;
-        let value_lower = (value & 0xff) as u8;
-        let Span {
-            row_end,
-            col_end,
-            byte_end,
-            ..
-        } = self
+        let value = self.parse_value::<u32>()?;
+        let end_span = self
             .consume(&[TokenKind::Delimiter], ParserError::ExpectedDelimiter)?
             .span;
-        let span = Span {
-            row_start,
-            row_end,
-            col_start,
-            col_end,
-            byte_start,
-            byte_end,
+        let span = Span::from((token.span, end_span));
+        let instruction = Instruction {
+            opcode,
+            r#type,
+            data: Data::Imm(reg, Imm::from(value)),
         };
-        let text = self.create_text(instruction(reg as u8, value_upper, value_lower), span);
+        let text = self.create_text(instruction, span);
         self.push_text(text);
         Ok(())
     }
 
-    fn parse_reg_3(
-        &mut self,
-        token: Token,
-        instruction: impl Fn(u8, u8, u8) -> Instruction,
-    ) -> Result<()> {
-        let Span {
-            row_start,
-            col_start,
-            byte_start,
-            ..
-        } = token.span;
+    fn parse_reg_3(&mut self, token: Token, opcode: Opcode) -> Result<()> {
+        let r#type = self.parse_type()?;
         let des = self.parse_reg()?;
         let lhs = self.parse_reg()?;
         let rhs = self.parse_reg()?;
-        let Span {
-            row_end,
-            col_end,
-            byte_end,
-            ..
-        } = self
+        let end_span = self
             .consume(&[TokenKind::Delimiter], ParserError::ExpectedDelimiter)?
             .span;
 
-        let span = Span {
-            row_start,
-            row_end,
-            col_start,
-            col_end,
-            byte_start,
-            byte_end,
+        let span = Span::from((token.span, end_span));
+        let instruction = Instruction {
+            opcode,
+            r#type,
+            data: Data::Reg3(des, lhs, rhs),
         };
-        let text = self.create_text(instruction(des as u8, lhs as u8, rhs as u8), span);
+        let text = self.create_text(instruction, span);
         self.push_text(text);
         Ok(())
     }
 
-    fn parse_no_args(&mut self, token: Token, instruction: Instruction) -> Result<()> {
-        let Span {
-            row_start,
-            col_start,
-            byte_start,
-            ..
-        } = token.span;
-        let Span {
-            row_end,
-            col_end,
-            byte_end,
-            ..
-        } = self
+    fn parse_no_args(&mut self, token: Token, opcode: Opcode) -> Result<()> {
+        let end_span = self
             .consume(&[TokenKind::Delimiter], ParserError::ExpectedDelimiter)?
             .span;
-        let span = Span {
-            row_start,
-            row_end,
-            col_start,
-            col_end,
-            byte_start,
-            byte_end,
+        let span = Span::from((token.span, end_span));
+        let instruction = Instruction {
+            opcode,
+            r#type: Type::Void,
+            data: Data::NoArgs,
         };
         let text = self.create_text(instruction, span);
         self.push_text(text);
@@ -411,9 +331,14 @@ impl Parser {
             let kind = token.kind.clone();
             let maybe_error = match kind {
                 TokenKind::Period => self.parse_directive(token),
-                TokenKind::KeywordLoadInt => self.parse_reg_u16(token, Instruction::LoadInt),
-                TokenKind::KeywordAdd => self.parse_reg_3(token, Instruction::Add),
-                TokenKind::KeywordHult => self.parse_no_args(token, Instruction::Hult),
+                TokenKind::KeywordLoad => self.parse_reg_imm(token, Opcode::Load),
+                TokenKind::KeywordAdd => self.parse_reg_3(token, Opcode::Add),
+                TokenKind::KeywordHult => self.parse_no_args(token, Opcode::Hult),
+                TokenKind::Identifier(_) if matches!(self.peek_kind(), Some(&TokenKind::Colon)) => {
+                    self.label = Some(token);
+                    let _ = self.consume(&[TokenKind::Colon], ParserError::ExpectedColon)?;
+                    continue;
+                }
                 TokenKind::Delimiter => continue,
                 _ => todo!("report error {:?}", kind),
             };
@@ -422,7 +347,7 @@ impl Parser {
             };
             self.errors.push(e);
         }
-        if let None = self.entry_point {
+        if self.entry_point.is_none() {
             self.errors.push(ParserError::MissingEntryPoint.into());
         }
         if !self.errors.is_empty() {
@@ -500,4 +425,5 @@ mod tests {
     }
 
     snapshot!(demo, "../samples/demo.asm");
+    snapshot!(main, "../samples/main.asm");
 }
