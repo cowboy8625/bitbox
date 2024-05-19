@@ -179,6 +179,16 @@ impl Data {
             Self::Imm(reg, imm) => vec![*reg as u8].into_iter().chain(imm.0.clone()).collect(),
         }
     }
+
+    pub fn size(&self) -> usize {
+        match self {
+            Self::NoArgs => 0,
+            Self::Reg1(_) => 1,
+            Self::Reg2(_, _) => 2,
+            Self::Reg3(_, _, _) => 3,
+            Self::Imm(_, imm) => 1 + imm.0.len(),
+        }
+    }
 }
 
 /// Represents an instruction
@@ -200,8 +210,21 @@ impl Instruction {
         bytes.extend(self.data.to_bytes());
         bytes
     }
+
+    pub fn size(&self) -> u32 {
+        let opcode = 1;
+        let type_ = 1;
+        let data = match self.opcode {
+            Opcode::Load => self.data.size() as u32,
+            Opcode::Add => 3,
+            Opcode::Hult => 0,
+        };
+
+        opcode + type_ + data
+    }
 }
 
+// TODO: Move this into the mv struct
 impl Execute for Instruction {
     fn execute(&mut self, mv: &mut Mv) {
         match self.opcode {

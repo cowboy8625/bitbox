@@ -7,6 +7,7 @@ use anyhow::Result;
 fn main() -> Result<()> {
     let src = r#"
     .entry main
+    load[u32] %5 10
     main:
         load[u32] %0 7
         load[u32] %1 10

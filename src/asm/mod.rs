@@ -8,7 +8,7 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 
-use self::parser::Label;
+use self::parser::{Label, Text};
 
 type SymbolTable = HashMap<String, u32>;
 
@@ -30,8 +30,8 @@ pub fn assemble(src: &str) -> Result<Vec<u8>> {
                 else {
                     unreachable!("expected identifier")
                 };
-                let index = &0; // symbol_table.get(name).unwrap();
-                entry_point = Some(*index + Header::SIZE as u32);
+                let index = symbol_table.get(name).unwrap();
+                entry_point = Some(*index);
             }
             Item::Text(text) => {
                 for instruction in text.iter() {
@@ -103,14 +103,15 @@ fn symbol_table(instructions: &[Item], data_offset: u32) -> SymbolTable {
             Item::EntryPoint(_) => {}
             Item::Text(text) => {
                 for instruction in text.iter() {
+                    let Text { label, opcode, .. } = &instruction;
                     if let Some(Label {
                         name, def: true, ..
-                    }) = &instruction.label
+                    }) = label
                     {
                         symbol_table.insert(name.clone(), ip);
-                        ip += 4;
+                        ip += opcode.size();
                     } else {
-                        ip += 4;
+                        ip += opcode.size();
                     }
                 }
             }
