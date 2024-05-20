@@ -29,8 +29,11 @@ impl From<(Span, Span)> for Span {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum TokenKind {
+    KeywordPush,
+    KeywordPop,
     KeywordLoad,
     KeywordAdd,
+    KeywordInc,
     KeywordHult,
     Number(u32),
     Identifier(String),
@@ -144,6 +147,9 @@ impl<'a> Lexer<'a> {
         }
 
         let kind = match identifier.as_str() {
+            "push" => TokenKind::KeywordPush,
+            "pop" => TokenKind::KeywordPop,
+            "inc" => TokenKind::KeywordInc,
             "load" => TokenKind::KeywordLoad,
             "add" => TokenKind::KeywordAdd,
             "hult" => TokenKind::KeywordHult,
@@ -151,6 +157,11 @@ impl<'a> Lexer<'a> {
         };
         let span = self.span();
         self.add_token_with_span(kind, span);
+    }
+
+    fn comment(&mut self) {
+        while let Some(_) = self.next_if(|c| c != '\n') {}
+        self.span();
     }
 
     fn lex(mut self) -> Vec<Token> {
@@ -161,6 +172,7 @@ impl<'a> Lexer<'a> {
                 ' ' | '\t' => {
                     self.span();
                 }
+                ';' => self.comment(),
                 '=' => self.add_token(TokenKind::Equal),
                 '\n' => self.add_token(TokenKind::Delimiter),
                 '(' => self.add_token(TokenKind::LeftParen),

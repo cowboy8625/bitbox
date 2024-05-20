@@ -277,6 +277,23 @@ impl Parser {
         Ok(())
     }
 
+    fn parse_reg_1(&mut self, token: Token, opcode: Opcode) -> Result<()> {
+        let r#type = self.parse_type()?;
+        let reg = self.parse_reg()?;
+        let end_span = self
+            .consume(&[TokenKind::Delimiter], ParserError::ExpectedDelimiter)?
+            .span;
+        let span = Span::from((token.span, end_span));
+        let instruction = Instruction {
+            opcode,
+            r#type,
+            data: Data::Reg1(reg),
+        };
+        let text = self.create_text(instruction, span);
+        self.push_text(text);
+        Ok(())
+    }
+
     fn parse_no_args(&mut self, token: Token, opcode: Opcode) -> Result<()> {
         let end_span = self
             .consume(&[TokenKind::Delimiter], ParserError::ExpectedDelimiter)?
@@ -331,8 +348,11 @@ impl Parser {
             let kind = token.kind.clone();
             let maybe_error = match kind {
                 TokenKind::Period => self.parse_directive(token),
+                TokenKind::KeywordPush => self.parse_reg_1(token, Opcode::Push),
+                TokenKind::KeywordPop => self.parse_reg_1(token, Opcode::Pop),
                 TokenKind::KeywordLoad => self.parse_reg_imm(token, Opcode::Load),
                 TokenKind::KeywordAdd => self.parse_reg_3(token, Opcode::Add),
+                TokenKind::KeywordInc => self.parse_reg_1(token, Opcode::Inc),
                 TokenKind::KeywordHult => self.parse_no_args(token, Opcode::Hult),
                 TokenKind::Identifier(_) if matches!(self.peek_kind(), Some(&TokenKind::Colon)) => {
                     self.label = Some(token);

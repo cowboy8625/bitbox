@@ -5,6 +5,7 @@ use anyhow::Result;
 pub struct Mv {
     program: Vec<u8>,
     regesters: Vec<u32>,
+    stack: Vec<u32>,
     pc: usize,
     pub running: bool,
 }
@@ -27,6 +28,7 @@ impl Mv {
         Ok(Self {
             program,
             regesters: vec![0; 32],
+            stack: Vec::new(),
             pc,
             running: true,
         })
@@ -40,12 +42,23 @@ impl Mv {
         self.regesters[reg as usize] = value;
     }
 
+    pub fn push_to_stack(&mut self, value: u32) {
+        self.stack.push(value);
+    }
+
+    pub fn pop_from_stack(&mut self) -> u32 {
+        self.stack.pop().unwrap()
+    }
+
     pub fn execute(&mut self) -> Result<()> {
         let opcode: Opcode = self.get_next_byte().try_into()?;
         match opcode {
-            Opcode::Load => self.load()?,
-            Opcode::Add => self.add()?,
-            Opcode::Hult => self.hult()?,
+            Opcode::Load => self.opcode_1reg_imm(Opcode::Load)?,
+            Opcode::Push => self.opcode_1reg(Opcode::Push)?,
+            Opcode::Pop => self.opcode_1reg(Opcode::Pop)?,
+            Opcode::Add => self.opcode_3reg(Opcode::Add)?,
+            Opcode::Inc => self.opcode_1reg(Opcode::Inc)?,
+            Opcode::Hult => self.opcode_noargs(Opcode::Hult)?,
         }
         Ok(())
     }
@@ -66,7 +79,43 @@ impl Mv {
         self.program[pc]
     }
 
-    fn load(&mut self) -> Result<()> {
+    fn opcode_noargs(&mut self, opcode: Opcode) -> Result<()> {
+        Instruction {
+            opcode,
+            r#type: Type::Void,
+            data: Data::NoArgs,
+        }
+        .execute(self);
+        Ok(())
+    }
+
+    fn opcode_1reg(&mut self, opcode: Opcode) -> Result<()> {
+        let r#type: Type = self.get_next_byte().try_into()?;
+        let reg: Register = (self.get_next_byte(), Span::default()).try_into()?;
+        Instruction {
+            opcode,
+            r#type,
+            data: Data::Reg1(reg),
+        }
+        .execute(self);
+        Ok(())
+    }
+
+    fn opcode_3reg(&mut self, opcode: Opcode) -> Result<()> {
+        let r#type: Type = self.get_next_byte().try_into()?;
+        let reg1: Register = (self.get_next_byte(), Span::default()).try_into()?;
+        let reg2: Register = (self.get_next_byte(), Span::default()).try_into()?;
+        let reg3: Register = (self.get_next_byte(), Span::default()).try_into()?;
+        Instruction {
+            opcode,
+            r#type,
+            data: Data::Reg3(reg1, reg2, reg3),
+        }
+        .execute(self);
+        Ok(())
+    }
+
+    fn opcode_1reg_imm(&mut self, opcode: Opcode) -> Result<()> {
         let r#type: Type = self.get_next_byte().try_into()?;
         let reg: Register = (self.get_next_byte(), Span::default()).try_into()?;
 
@@ -118,34 +167,9 @@ impl Mv {
         }
 
         Instruction {
-            opcode: Opcode::Load,
+            opcode,
             r#type,
             data: Data::Imm(reg, Imm(data)),
-        }
-        .execute(self);
-        Ok(())
-    }
-
-    fn add(&mut self) -> Result<()> {
-        let r#type: Type = self.get_next_byte().try_into()?;
-        let des: Register = (self.get_next_byte(), Span::default()).try_into()?;
-        let lhs: Register = (self.get_next_byte(), Span::default()).try_into()?;
-        let rhs: Register = (self.get_next_byte(), Span::default()).try_into()?;
-
-        Instruction {
-            opcode: Opcode::Add,
-            r#type,
-            data: Data::Reg3(des, lhs, rhs),
-        }
-        .execute(self);
-        Ok(())
-    }
-
-    fn hult(&mut self) -> Result<()> {
-        Instruction {
-            opcode: Opcode::Hult,
-            r#type: Type::Void,
-            data: Data::NoArgs,
         }
         .execute(self);
         Ok(())

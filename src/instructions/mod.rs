@@ -88,7 +88,10 @@ impl TryFrom<(u8, Span)> for Register {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Opcode {
     Load,
+    Push,
+    Pop,
     Add,
+    Inc,
     Hult,
 }
 
@@ -98,8 +101,11 @@ impl TryFrom<u8> for Opcode {
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(Opcode::Load),
-            1 => Ok(Opcode::Add),
-            2 => Ok(Opcode::Hult),
+            1 => Ok(Opcode::Push),
+            2 => Ok(Opcode::Pop),
+            3 => Ok(Opcode::Add),
+            4 => Ok(Opcode::Inc),
+            5 => Ok(Opcode::Hult),
             _ => Err(BitBoxError::InvalidOpcode(value)),
         }
     }
@@ -214,12 +220,7 @@ impl Instruction {
     pub fn size(&self) -> u32 {
         let opcode = 1;
         let type_ = 1;
-        let data = match self.opcode {
-            Opcode::Load => self.data.size() as u32,
-            Opcode::Add => 3,
-            Opcode::Hult => 0,
-        };
-
+        let data = self.data.size() as u32;
         opcode + type_ + data
     }
 }
@@ -248,11 +249,32 @@ impl Execute for Instruction {
                 }
                 _ => unimplemented!("Load with two registers not implemented"),
             },
+            Opcode::Push => match self.data {
+                Data::Reg1(reg) => {
+                    let value = *mv.get_regester(reg as u8);
+                    mv.push_to_stack(value);
+                }
+                _ => unreachable!("Push with two registers not implemented"),
+            },
+            Opcode::Pop => match self.data {
+                Data::Reg1(reg) => {
+                    let value = mv.pop_from_stack();
+                    mv.set_regester(reg as u8, value);
+                }
+                _ => unreachable!("Push with two registers not implemented"),
+            },
             Opcode::Add => match self.data {
                 Data::Reg3(des, reg_lhs, reg_rhs) => {
                     let lhs = mv.get_regester(reg_lhs as u8);
                     let rhs = mv.get_regester(reg_rhs as u8);
                     mv.set_regester(des as u8, lhs + rhs);
+                }
+                _ => unreachable!(),
+            },
+            Opcode::Inc => match self.data {
+                Data::Reg1(reg) => {
+                    let value = mv.get_regester(reg as u8);
+                    mv.set_regester(reg as u8, value + 1);
                 }
                 _ => unreachable!(),
             },
