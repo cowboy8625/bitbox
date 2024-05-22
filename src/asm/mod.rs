@@ -58,7 +58,7 @@ pub fn assemble(src: &str) -> Result<Vec<u8>> {
 #[derive(Debug)]
 pub struct Header([u8; Header::SIZE]);
 impl Header {
-    pub const MAGIC_NUMBER: [u8; 4] = [0x42, 0x42, 0x56, 0x4d]; // BBVM
+    pub const MAGIC_NUMBER: [u8; 4] = [0x42, 0x42, 0x56, 0x4d]; //BBOX
     pub const TEXT_OFFSET: usize = 4;
     pub const ENTRY_OFFSET: usize = 8;
     pub const SIZE: usize = 64;
