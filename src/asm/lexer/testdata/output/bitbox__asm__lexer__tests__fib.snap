@@ -1,0 +1,108 @@
+---
+source: src/asm/lexer/mod.rs
+expression: snapshot_lexing(contents)
+---
+.entry main
+^ Token { kind: Period, span: Span { row_start: 0, row_end: 0, col_start: 0, col_end: 1, byte_start: 0, byte_end: 1 } }
+ ^^^^^ Token { kind: Identifier("entry"), span: Span { row_start: 0, row_end: 0, col_start: 1, col_end: 6, byte_start: 1, byte_end: 6 } }
+       ^^^^ Token { kind: Identifier("main"), span: Span { row_start: 0, row_end: 0, col_start: 7, col_end: 11, byte_start: 7, byte_end: 11 } }
+           ^ Token { kind: Delimiter, span: Span { row_start: 0, row_end: 0, col_start: 11, col_end: 12, byte_start: 11, byte_end: 12 } }
+main:
+^^^^ Token { kind: Identifier("main"), span: Span { row_start: 0, row_end: 1, col_start: 0, col_end: 4, byte_start: 12, byte_end: 16 } }
+    ^ Token { kind: Colon, span: Span { row_start: 1, row_end: 1, col_start: 4, col_end: 5, byte_start: 16, byte_end: 17 } }
+     ^ Token { kind: Delimiter, span: Span { row_start: 1, row_end: 1, col_start: 5, col_end: 6, byte_start: 17, byte_end: 18 } }
+    load[u32] %0  1 ; a = 1
+    ^^^^ Token { kind: KeywordLoad, span: Span { row_start: 2, row_end: 2, col_start: 4, col_end: 8, byte_start: 22, byte_end: 26 } }
+        ^ Token { kind: LeftBracket, span: Span { row_start: 2, row_end: 2, col_start: 8, col_end: 9, byte_start: 26, byte_end: 27 } }
+         ^^^ Token { kind: Identifier("u32"), span: Span { row_start: 2, row_end: 2, col_start: 9, col_end: 12, byte_start: 27, byte_end: 30 } }
+            ^ Token { kind: RightBracket, span: Span { row_start: 2, row_end: 2, col_start: 12, col_end: 13, byte_start: 30, byte_end: 31 } }
+              ^ Token { kind: PercentSign, span: Span { row_start: 2, row_end: 2, col_start: 14, col_end: 15, byte_start: 32, byte_end: 33 } }
+               ^ Token { kind: Number(0), span: Span { row_start: 2, row_end: 2, col_start: 15, col_end: 16, byte_start: 33, byte_end: 34 } }
+                  ^ Token { kind: Number(1), span: Span { row_start: 2, row_end: 2, col_start: 18, col_end: 19, byte_start: 36, byte_end: 37 } }
+                           ^ Token { kind: Delimiter, span: Span { row_start: 2, row_end: 2, col_start: 27, col_end: 28, byte_start: 45, byte_end: 46 } }
+    load[u32] %1  1 ; b = 1
+    ^^^^ Token { kind: KeywordLoad, span: Span { row_start: 3, row_end: 3, col_start: 4, col_end: 8, byte_start: 50, byte_end: 54 } }
+        ^ Token { kind: LeftBracket, span: Span { row_start: 3, row_end: 3, col_start: 8, col_end: 9, byte_start: 54, byte_end: 55 } }
+         ^^^ Token { kind: Identifier("u32"), span: Span { row_start: 3, row_end: 3, col_start: 9, col_end: 12, byte_start: 55, byte_end: 58 } }
+            ^ Token { kind: RightBracket, span: Span { row_start: 3, row_end: 3, col_start: 12, col_end: 13, byte_start: 58, byte_end: 59 } }
+              ^ Token { kind: PercentSign, span: Span { row_start: 3, row_end: 3, col_start: 14, col_end: 15, byte_start: 60, byte_end: 61 } }
+               ^ Token { kind: Number(1), span: Span { row_start: 3, row_end: 3, col_start: 15, col_end: 16, byte_start: 61, byte_end: 62 } }
+                  ^ Token { kind: Number(1), span: Span { row_start: 3, row_end: 3, col_start: 18, col_end: 19, byte_start: 64, byte_end: 65 } }
+                           ^ Token { kind: Delimiter, span: Span { row_start: 3, row_end: 3, col_start: 27, col_end: 28, byte_start: 73, byte_end: 74 } }
+    load[u32] %2 46 ; c = 46 (the number of iterations)
+    ^^^^ Token { kind: KeywordLoad, span: Span { row_start: 4, row_end: 4, col_start: 4, col_end: 8, byte_start: 78, byte_end: 82 } }
+        ^ Token { kind: LeftBracket, span: Span { row_start: 4, row_end: 4, col_start: 8, col_end: 9, byte_start: 82, byte_end: 83 } }
+         ^^^ Token { kind: Identifier("u32"), span: Span { row_start: 4, row_end: 4, col_start: 9, col_end: 12, byte_start: 83, byte_end: 86 } }
+            ^ Token { kind: RightBracket, span: Span { row_start: 4, row_end: 4, col_start: 12, col_end: 13, byte_start: 86, byte_end: 87 } }
+              ^ Token { kind: PercentSign, span: Span { row_start: 4, row_end: 4, col_start: 14, col_end: 15, byte_start: 88, byte_end: 89 } }
+               ^ Token { kind: Number(2), span: Span { row_start: 4, row_end: 4, col_start: 15, col_end: 16, byte_start: 89, byte_end: 90 } }
+                 ^^ Token { kind: Number(46), span: Span { row_start: 4, row_end: 4, col_start: 17, col_end: 19, byte_start: 91, byte_end: 93 } }
+                                                       ^ Token { kind: Delimiter, span: Span { row_start: 4, row_end: 4, col_start: 55, col_end: 56, byte_start: 129, byte_end: 130 } }
+    load[u32] %3  2 ; d = 2 (to start counting from the third Fibonacci number)
+    ^^^^ Token { kind: KeywordLoad, span: Span { row_start: 5, row_end: 5, col_start: 4, col_end: 8, byte_start: 134, byte_end: 138 } }
+        ^ Token { kind: LeftBracket, span: Span { row_start: 5, row_end: 5, col_start: 8, col_end: 9, byte_start: 138, byte_end: 139 } }
+         ^^^ Token { kind: Identifier("u32"), span: Span { row_start: 5, row_end: 5, col_start: 9, col_end: 12, byte_start: 139, byte_end: 142 } }
+            ^ Token { kind: RightBracket, span: Span { row_start: 5, row_end: 5, col_start: 12, col_end: 13, byte_start: 142, byte_end: 143 } }
+              ^ Token { kind: PercentSign, span: Span { row_start: 5, row_end: 5, col_start: 14, col_end: 15, byte_start: 144, byte_end: 145 } }
+               ^ Token { kind: Number(3), span: Span { row_start: 5, row_end: 5, col_start: 15, col_end: 16, byte_start: 145, byte_end: 146 } }
+                  ^ Token { kind: Number(2), span: Span { row_start: 5, row_end: 5, col_start: 18, col_end: 19, byte_start: 148, byte_end: 149 } }
+                                                                               ^ Token { kind: Delimiter, span: Span { row_start: 5, row_end: 5, col_start: 79, col_end: 80, byte_start: 209, byte_end: 210 } }
+loop:
+^^^^ Token { kind: Identifier("loop"), span: Span { row_start: 5, row_end: 6, col_start: 0, col_end: 4, byte_start: 210, byte_end: 214 } }
+    ^ Token { kind: Colon, span: Span { row_start: 6, row_end: 6, col_start: 4, col_end: 5, byte_start: 214, byte_end: 215 } }
+     ^ Token { kind: Delimiter, span: Span { row_start: 6, row_end: 6, col_start: 5, col_end: 6, byte_start: 215, byte_end: 216 } }
+    push[u32] %1    ; push b to stack
+    ^^^^ Token { kind: KeywordPush, span: Span { row_start: 7, row_end: 7, col_start: 4, col_end: 8, byte_start: 220, byte_end: 224 } }
+        ^ Token { kind: LeftBracket, span: Span { row_start: 7, row_end: 7, col_start: 8, col_end: 9, byte_start: 224, byte_end: 225 } }
+         ^^^ Token { kind: Identifier("u32"), span: Span { row_start: 7, row_end: 7, col_start: 9, col_end: 12, byte_start: 225, byte_end: 228 } }
+            ^ Token { kind: RightBracket, span: Span { row_start: 7, row_end: 7, col_start: 12, col_end: 13, byte_start: 228, byte_end: 229 } }
+              ^ Token { kind: PercentSign, span: Span { row_start: 7, row_end: 7, col_start: 14, col_end: 15, byte_start: 230, byte_end: 231 } }
+               ^ Token { kind: Number(1), span: Span { row_start: 7, row_end: 7, col_start: 15, col_end: 16, byte_start: 231, byte_end: 232 } }
+                                     ^ Token { kind: Delimiter, span: Span { row_start: 7, row_end: 7, col_start: 37, col_end: 38, byte_start: 253, byte_end: 254 } }
+    add[u32] %1 %0 %1 ; b = a + b
+    ^^^ Token { kind: KeywordAdd, span: Span { row_start: 8, row_end: 8, col_start: 4, col_end: 7, byte_start: 258, byte_end: 261 } }
+       ^ Token { kind: LeftBracket, span: Span { row_start: 8, row_end: 8, col_start: 7, col_end: 8, byte_start: 261, byte_end: 262 } }
+        ^^^ Token { kind: Identifier("u32"), span: Span { row_start: 8, row_end: 8, col_start: 8, col_end: 11, byte_start: 262, byte_end: 265 } }
+           ^ Token { kind: RightBracket, span: Span { row_start: 8, row_end: 8, col_start: 11, col_end: 12, byte_start: 265, byte_end: 266 } }
+             ^ Token { kind: PercentSign, span: Span { row_start: 8, row_end: 8, col_start: 13, col_end: 14, byte_start: 267, byte_end: 268 } }
+              ^ Token { kind: Number(1), span: Span { row_start: 8, row_end: 8, col_start: 14, col_end: 15, byte_start: 268, byte_end: 269 } }
+                ^ Token { kind: PercentSign, span: Span { row_start: 8, row_end: 8, col_start: 16, col_end: 17, byte_start: 270, byte_end: 271 } }
+                 ^ Token { kind: Number(0), span: Span { row_start: 8, row_end: 8, col_start: 17, col_end: 18, byte_start: 271, byte_end: 272 } }
+                   ^ Token { kind: PercentSign, span: Span { row_start: 8, row_end: 8, col_start: 19, col_end: 20, byte_start: 273, byte_end: 274 } }
+                    ^ Token { kind: Number(1), span: Span { row_start: 8, row_end: 8, col_start: 20, col_end: 21, byte_start: 274, byte_end: 275 } }
+                                 ^ Token { kind: Delimiter, span: Span { row_start: 8, row_end: 8, col_start: 33, col_end: 34, byte_start: 287, byte_end: 288 } }
+    pop[u32] %0     ; a = old b (from stack)
+    ^^^ Token { kind: KeywordPop, span: Span { row_start: 9, row_end: 9, col_start: 4, col_end: 7, byte_start: 292, byte_end: 295 } }
+       ^ Token { kind: LeftBracket, span: Span { row_start: 9, row_end: 9, col_start: 7, col_end: 8, byte_start: 295, byte_end: 296 } }
+        ^^^ Token { kind: Identifier("u32"), span: Span { row_start: 9, row_end: 9, col_start: 8, col_end: 11, byte_start: 296, byte_end: 299 } }
+           ^ Token { kind: RightBracket, span: Span { row_start: 9, row_end: 9, col_start: 11, col_end: 12, byte_start: 299, byte_end: 300 } }
+             ^ Token { kind: PercentSign, span: Span { row_start: 9, row_end: 9, col_start: 13, col_end: 14, byte_start: 301, byte_end: 302 } }
+              ^ Token { kind: Number(0), span: Span { row_start: 9, row_end: 9, col_start: 14, col_end: 15, byte_start: 302, byte_end: 303 } }
+                                            ^ Token { kind: Delimiter, span: Span { row_start: 9, row_end: 9, col_start: 44, col_end: 45, byte_start: 332, byte_end: 333 } }
+    inc[u32] %3     ; d++
+    ^^^ Token { kind: KeywordInc, span: Span { row_start: 10, row_end: 10, col_start: 4, col_end: 7, byte_start: 337, byte_end: 340 } }
+       ^ Token { kind: LeftBracket, span: Span { row_start: 10, row_end: 10, col_start: 7, col_end: 8, byte_start: 340, byte_end: 341 } }
+        ^^^ Token { kind: Identifier("u32"), span: Span { row_start: 10, row_end: 10, col_start: 8, col_end: 11, byte_start: 341, byte_end: 344 } }
+           ^ Token { kind: RightBracket, span: Span { row_start: 10, row_end: 10, col_start: 11, col_end: 12, byte_start: 344, byte_end: 345 } }
+             ^ Token { kind: PercentSign, span: Span { row_start: 10, row_end: 10, col_start: 13, col_end: 14, byte_start: 346, byte_end: 347 } }
+              ^ Token { kind: Number(3), span: Span { row_start: 10, row_end: 10, col_start: 14, col_end: 15, byte_start: 347, byte_end: 348 } }
+                         ^ Token { kind: Delimiter, span: Span { row_start: 10, row_end: 10, col_start: 25, col_end: 26, byte_start: 358, byte_end: 359 } }
+    jne %3 %2 loop  ; if d != c, jump to loop
+    ^^^ Token { kind: KeywordJne, span: Span { row_start: 11, row_end: 11, col_start: 4, col_end: 7, byte_start: 363, byte_end: 366 } }
+        ^ Token { kind: PercentSign, span: Span { row_start: 11, row_end: 11, col_start: 8, col_end: 9, byte_start: 367, byte_end: 368 } }
+         ^ Token { kind: Number(3), span: Span { row_start: 11, row_end: 11, col_start: 9, col_end: 10, byte_start: 368, byte_end: 369 } }
+           ^ Token { kind: PercentSign, span: Span { row_start: 11, row_end: 11, col_start: 11, col_end: 12, byte_start: 370, byte_end: 371 } }
+            ^ Token { kind: Number(2), span: Span { row_start: 11, row_end: 11, col_start: 12, col_end: 13, byte_start: 371, byte_end: 372 } }
+              ^^^^ Token { kind: Identifier("loop"), span: Span { row_start: 11, row_end: 11, col_start: 14, col_end: 18, byte_start: 373, byte_end: 377 } }
+                                             ^ Token { kind: Delimiter, span: Span { row_start: 11, row_end: 11, col_start: 45, col_end: 46, byte_start: 404, byte_end: 405 } }
+    printreg[u32] %1 ; print b (the last computed Fibonacci number)
+    ^^^^^^^^ Token { kind: KeywordPrintReg, span: Span { row_start: 12, row_end: 12, col_start: 4, col_end: 12, byte_start: 409, byte_end: 417 } }
+            ^ Token { kind: LeftBracket, span: Span { row_start: 12, row_end: 12, col_start: 12, col_end: 13, byte_start: 417, byte_end: 418 } }
+             ^^^ Token { kind: Identifier("u32"), span: Span { row_start: 12, row_end: 12, col_start: 13, col_end: 16, byte_start: 418, byte_end: 421 } }
+                ^ Token { kind: RightBracket, span: Span { row_start: 12, row_end: 12, col_start: 16, col_end: 17, byte_start: 421, byte_end: 422 } }
+                  ^ Token { kind: PercentSign, span: Span { row_start: 12, row_end: 12, col_start: 18, col_end: 19, byte_start: 423, byte_end: 424 } }
+                   ^ Token { kind: Number(1), span: Span { row_start: 12, row_end: 12, col_start: 19, col_end: 20, byte_start: 424, byte_end: 425 } }
+                                                                   ^ Token { kind: Delimiter, span: Span { row_start: 12, row_end: 12, col_start: 67, col_end: 68, byte_start: 472, byte_end: 473 } }
+    hult
+    ^^^^ Token { kind: KeywordHult, span: Span { row_start: 13, row_end: 13, col_start: 4, col_end: 8, byte_start: 477, byte_end: 481 } }
+        ^ Token { kind: Delimiter, span: Span { row_start: 13, row_end: 13, col_start: 8, col_end: 9, byte_start: 481, byte_end: 482 } }

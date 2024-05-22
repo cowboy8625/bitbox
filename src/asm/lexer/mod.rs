@@ -240,4 +240,5 @@ mod tests {
 
     snapshot!(demo, "../samples/demo.asm");
     snapshot!(main, "../samples/main.asm");
+    snapshot!(fib, "../samples/fib.asm");
 }
