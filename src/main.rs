@@ -2,6 +2,7 @@ mod asm;
 mod error;
 mod instructions;
 mod mv;
+mod utils;
 use anyhow::Result;
 
 // TODO: SYSCALL for now we will do a print instruction

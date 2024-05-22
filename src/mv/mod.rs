@@ -1,5 +1,6 @@
 use crate::asm::{Header, Span};
-use crate::instructions::{Data, Either, Execute, Imm, Instruction, Opcode, Register, Type};
+use crate::instructions::{Data, Execute, Imm, Instruction, Opcode, Register, Type};
+use crate::utils::Either;
 use anyhow::Result;
 
 pub struct Mv {
@@ -196,5 +197,88 @@ impl Mv {
         }
         .execute(self);
         Ok(())
+    }
+}
+
+impl Execute for Instruction {
+    fn execute(&mut self, mv: &mut Mv) {
+        match self.opcode {
+            Opcode::Load => match &self.data {
+                Data::Imm(reg, Imm(value)) => {
+                    let size = self.r#type.bytes();
+                    // debug_assert_eq!(value.len(), size as usize);
+                    match size {
+                        8 => mv.set_regester(*reg as u8, value[0] as u32),
+                        16 => mv.set_regester(
+                            *reg as u8,
+                            u16::from_le_bytes(value[0..2].try_into().expect("Not enough bytes"))
+                                as u32,
+                        ),
+                        32 => mv.set_regester(
+                            *reg as u8,
+                            u32::from_le_bytes(value[0..4].try_into().expect("Not enough bytes")),
+                        ),
+                        _ => unimplemented!("Unimplemented size: {}", size),
+                    }
+                }
+                _ => unimplemented!("Load with two registers not implemented"),
+            },
+            Opcode::Push => match self.data {
+                Data::Reg1(reg) => {
+                    let value = *mv.get_regester(reg as u8);
+                    mv.push_to_stack(value);
+                }
+                _ => unreachable!("Push with two registers not implemented"),
+            },
+            Opcode::Pop => match self.data {
+                Data::Reg1(reg) => {
+                    let value = mv.pop_from_stack();
+                    mv.set_regester(reg as u8, value);
+                }
+                _ => unreachable!("Push with two registers not implemented"),
+            },
+            Opcode::Add => match self.data {
+                Data::Reg3(des, reg_lhs, reg_rhs) => {
+                    let lhs = mv.get_regester(reg_lhs as u8);
+                    let rhs = mv.get_regester(reg_rhs as u8);
+                    mv.set_regester(des as u8, lhs + rhs);
+                }
+                _ => unreachable!(),
+            },
+            Opcode::Inc => match self.data {
+                Data::Reg1(reg) => {
+                    let value = mv.get_regester(reg as u8);
+                    mv.set_regester(reg as u8, value + 1);
+                }
+                _ => unreachable!(),
+            },
+            Opcode::Jne => match self.data {
+                Data::RegLabel(lhs, rhs, Either::Right(label)) => {
+                    let lhs_value = mv.get_regester(lhs as u8);
+                    let rhs_value = mv.get_regester(rhs as u8);
+                    if lhs_value == rhs_value {
+                        return;
+                    }
+                    mv.pc = label as usize;
+                }
+                _ => unreachable!(),
+            },
+            Opcode::Eq => match self.data {
+                Data::Reg3(des, reg_lhs, reg_rhs) => {
+                    let lhs = mv.get_regester(reg_lhs as u8);
+                    let rhs = mv.get_regester(reg_rhs as u8);
+                    mv.set_regester(des as u8, (lhs == rhs) as u32);
+                }
+                _ => unreachable!(),
+            },
+            Opcode::Hult => mv.running = false,
+            Opcode::PrintReg => match self.data {
+                Data::Reg1(reg) => {
+                    let value = mv.get_regester(reg as u8);
+                    println!("{}", value);
+                }
+                _ => unreachable!(),
+            },
+        }
     }
 }

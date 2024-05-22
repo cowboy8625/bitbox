@@ -1,5 +1,6 @@
 use crate::asm::lexer::{Span, Token, TokenKind};
-use crate::instructions::{Data, Either, Imm, Instruction, Label, Opcode, Register, Type};
+use crate::instructions::{Data, Imm, Instruction, Label, Opcode, Register, Type};
+use crate::utils::Either;
 use anyhow::{bail, Result};
 use std::iter::Peekable;
 use thiserror::Error;
@@ -28,14 +29,10 @@ pub enum ParserError {
     UnknownDirective(String, Span),
     #[error("Missing entry point")]
     MissingEntryPoint,
-    #[error("Invalid instruction {0:?} at {}..{}", .1.col_start, .1.col_end)]
-    InvalidInstruction(TokenKind, Span),
     #[error("Expected identifier at {}..{} but found {0:?}", .1.col_start, .1.col_end)]
     ExpectedIdentifier(TokenKind, Span),
     #[error("Expected number at {}..{} but found {0:?}", .1.col_start, .1.col_end)]
     ExpectedNumber(TokenKind, Span),
-    #[error("Register out of bounds at {}..{}", .1.col_start, .1.col_end)]
-    RegisterOutOfBounds(u8, Span),
     #[error("Expected delimiter at {}..{} but found {0:?}", .1.col_start, .1.col_end)]
     ExpectedDelimiter(TokenKind, Span),
     #[error("Expected percent sign at {}..{} but found {0:?}", .1.col_start, .1.col_end)]
@@ -89,30 +86,11 @@ impl Text {
         }
     }
 
-    pub fn span(&self) -> Span {
+    pub fn _span(&self) -> Span {
         let Some(label) = &self.label else {
             return self.span;
         };
-        let Span {
-            row_start,
-            col_start,
-            byte_start,
-            ..
-        } = label.span;
-        let Span {
-            row_end,
-            col_end,
-            byte_end,
-            ..
-        } = self.span;
-        Span {
-            row_start,
-            col_start,
-            row_end,
-            col_end,
-            byte_start,
-            byte_end,
-        }
+        Span::from((label.span, self.span))
     }
 }
 
@@ -250,7 +228,7 @@ impl Parser {
         Ok(())
     }
 
-    fn parse_reg_2(&mut self, token: Token, opcode: Opcode) -> Result<()> {
+    fn _parse_reg_2(&mut self, token: Token, opcode: Opcode) -> Result<()> {
         let r#type = self.parse_type()?;
         let des = self.parse_reg()?;
         let lhs = self.parse_reg()?;
