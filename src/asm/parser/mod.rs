@@ -1,5 +1,5 @@
 use crate::asm::lexer::{Span, Token, TokenKind};
-use crate::instructions::{Data, Imm, Instruction, Opcode, Register, Type};
+use crate::instructions::{Data, Either, Imm, Instruction, Label, Opcode, Register, Type};
 use anyhow::{bail, Result};
 use std::iter::Peekable;
 use thiserror::Error;
@@ -50,13 +50,6 @@ pub enum ParserError {
     ExpectedLeftBracket(TokenKind, Span),
     #[error("Expected Signed or Unsigned {0:?} but found {1:?}")]
     ExpectedSign(TokenKind, Span),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Label {
-    pub name: String,
-    pub span: Span,
-    pub def: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -257,6 +250,24 @@ impl Parser {
         Ok(())
     }
 
+    fn parse_reg_2(&mut self, token: Token, opcode: Opcode) -> Result<()> {
+        let r#type = self.parse_type()?;
+        let des = self.parse_reg()?;
+        let lhs = self.parse_reg()?;
+        let end_span = self
+            .consume(&[TokenKind::Delimiter], ParserError::ExpectedDelimiter)?
+            .span;
+        let span = Span::from((token.span, end_span));
+        let instruction = Instruction {
+            opcode,
+            r#type,
+            data: Data::Reg2(des, lhs),
+        };
+        let text = self.create_text(instruction, span);
+        self.push_text(text);
+        Ok(())
+    }
+
     fn parse_reg_3(&mut self, token: Token, opcode: Opcode) -> Result<()> {
         let r#type = self.parse_type()?;
         let des = self.parse_reg()?;
@@ -309,6 +320,26 @@ impl Parser {
         Ok(())
     }
 
+    fn parse_reg_2_label(&mut self, token: Token, opcode: Opcode) -> Result<()> {
+        let r#type = Type::Void;
+        let lhs = self.parse_reg()?;
+        let rhs = self.parse_reg()?;
+        let label = self.parse_label()?;
+        let end_span = self
+            .consume(&[TokenKind::Delimiter], ParserError::ExpectedDelimiter)?
+            .span;
+        let span = Span::from((token.span, end_span));
+        let instruction = Instruction {
+            opcode,
+            r#type,
+            data: Data::RegLabel(lhs, rhs, Either::Left(label)),
+        };
+        let text = self.create_text(instruction, span);
+        self.push_text(text);
+
+        Ok(())
+    }
+
     fn entry_point(&mut self) -> Result<()> {
         // TODO: Make span match full entry point
         let token = self.next();
@@ -326,6 +357,20 @@ impl Parser {
         self.entry_point = token;
         let _ = self.consume(&[TokenKind::Delimiter], ParserError::ExpectedDelimiter)?;
         Ok(())
+    }
+
+    fn parse_label(&mut self) -> Result<Label> {
+        let Some(token) = self.next() else {
+            bail!(ParserError::UnexpectedEof);
+        };
+        let TokenKind::Identifier(name) = token.kind else {
+            bail!(ParserError::ExpectedIdentifier(token.kind, token.span));
+        };
+        Ok(Label {
+            name,
+            span: token.span,
+            def: false,
+        })
     }
 
     fn parse_directive(&mut self, token: Token) -> Result<()> {
@@ -352,8 +397,11 @@ impl Parser {
                 TokenKind::KeywordPop => self.parse_reg_1(token, Opcode::Pop),
                 TokenKind::KeywordLoad => self.parse_reg_imm(token, Opcode::Load),
                 TokenKind::KeywordAdd => self.parse_reg_3(token, Opcode::Add),
+                TokenKind::KeywordEq => self.parse_reg_3(token, Opcode::Eq),
                 TokenKind::KeywordInc => self.parse_reg_1(token, Opcode::Inc),
+                TokenKind::KeywordJne => self.parse_reg_2_label(token, Opcode::Jne),
                 TokenKind::KeywordHult => self.parse_no_args(token, Opcode::Hult),
+                TokenKind::KeywordPrintReg => self.parse_reg_1(token, Opcode::PrintReg),
                 TokenKind::Identifier(_) if matches!(self.peek_kind(), Some(&TokenKind::Colon)) => {
                     self.label = Some(token);
                     let _ = self.consume(&[TokenKind::Colon], ParserError::ExpectedColon)?;

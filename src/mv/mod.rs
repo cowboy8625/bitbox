@@ -1,12 +1,12 @@
 use crate::asm::{Header, Span};
-use crate::instructions::{Data, Execute, Imm, Instruction, Opcode, Register, Type};
+use crate::instructions::{Data, Either, Execute, Imm, Instruction, Opcode, Register, Type};
 use anyhow::Result;
 
 pub struct Mv {
     program: Vec<u8>,
     regesters: Vec<u32>,
     stack: Vec<u32>,
-    pc: usize,
+    pub pc: usize,
     pub running: bool,
 }
 
@@ -58,7 +58,10 @@ impl Mv {
             Opcode::Pop => self.opcode_1reg(Opcode::Pop)?,
             Opcode::Add => self.opcode_3reg(Opcode::Add)?,
             Opcode::Inc => self.opcode_1reg(Opcode::Inc)?,
+            Opcode::Eq => self.opcode_3reg(Opcode::Eq)?,
+            Opcode::Jne => self.opcode_1reg_label(Opcode::Jne)?,
             Opcode::Hult => self.opcode_noargs(Opcode::Hult)?,
+            Opcode::PrintReg => self.opcode_1reg(Opcode::PrintReg)?,
         }
         Ok(())
     }
@@ -67,7 +70,8 @@ impl Mv {
         while self.running {
             self.execute()?;
         }
-        println!("{:?}", self.regesters);
+        println!("stack: {:?}", self.stack);
+        println!("regesters: {:?}", self.regesters);
         Ok(())
     }
 }
@@ -120,6 +124,7 @@ impl Mv {
         let reg: Register = (self.get_next_byte(), Span::default()).try_into()?;
 
         let mut data = Vec::new();
+        // TODO: CLEAN THIS UP
         match r#type {
             Type::U(8) => data.push(self.get_next_byte()),
             Type::U(16) => data.extend_from_slice(&[self.get_next_byte(), self.get_next_byte()]),
@@ -170,6 +175,24 @@ impl Mv {
             opcode,
             r#type,
             data: Data::Imm(reg, Imm(data)),
+        }
+        .execute(self);
+        Ok(())
+    }
+    fn opcode_1reg_label(&mut self, opcode: Opcode) -> Result<()> {
+        let r#type: Type = self.get_next_byte().try_into()?;
+        let lhs: Register = (self.get_next_byte(), Span::default()).try_into()?;
+        let rhs: Register = (self.get_next_byte(), Span::default()).try_into()?;
+        let label = u32::from_le_bytes([
+            self.get_next_byte(),
+            self.get_next_byte(),
+            self.get_next_byte(),
+            self.get_next_byte(),
+        ]);
+        Instruction {
+            opcode,
+            r#type,
+            data: Data::RegLabel(lhs, rhs, Either::Right(label)),
         }
         .execute(self);
         Ok(())

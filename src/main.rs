@@ -4,35 +4,25 @@ mod instructions;
 mod mv;
 use anyhow::Result;
 
-// TODO: PUSH
-// TODO: POP
-// TODO: INC
-// TODO: EQ
-// TODO: JNE
 // TODO: SYSCALL for now we will do a print instruction
 
 fn main() -> Result<()> {
     let src = r#"
     .entry main
-    load[u32] %5 10
     main:
-        load[u32] %0 1 ; a
-        load[u32] %1 1 ; b
-        load[u32] %2 46
+        load[u32] %0  1 ; a = 1
+        load[u32] %1  1 ; b = 1
+        load[u32] %2 46 ; c = 46 (the number of iterations)
+        load[u32] %3  2 ; d = 2 (to start counting from the third Fibonacci number)
     loop:
-        push[u32] %1
-        add[u32] %0 %1 %1
-        pop[u32] %0
-        inc[u32] %3
-        ; eq[u32] %3 %2
-        ; jne loop
-        ; print %0
-        ; SYSCALL
-        ; load[u32] %0 0
-        ; load[u32] %1 0
+        push[u32] %1    ; push b to stack
+        add[u32] %1 %0 %1 ; b = a + b
+        pop[u32] %0     ; a = old b (from stack)
+        inc[u32] %3     ; d++
+        jne %3 %2 loop  ; if d != c, jump to loop
+        printreg[u32] %1 ; print b (the last computed Fibonacci number)
         hult
     "#;
     let program = asm::assemble(src)?;
-    eprintln!("{:?}", program);
     mv::Mv::new(program)?.run()
 }

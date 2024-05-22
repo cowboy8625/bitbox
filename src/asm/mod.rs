@@ -8,9 +8,10 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 
-use self::parser::{Label, Text};
+use self::parser::Text;
+use crate::instructions::Label;
 
-type SymbolTable = HashMap<String, u32>;
+pub type SymbolTable = HashMap<String, u32>;
 
 pub use lexer::Span;
 
@@ -35,7 +36,7 @@ pub fn assemble(src: &str) -> Result<Vec<u8>> {
             }
             Item::Text(text) => {
                 for instruction in text.iter() {
-                    let opcode = instruction.opcode.to_bytes();
+                    let opcode = instruction.opcode.to_bytes(&symbol_table);
                     program.extend_from_slice(&opcode);
                 }
             }

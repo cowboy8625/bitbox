@@ -1,9 +1,44 @@
-use crate::asm::Span;
+use crate::asm::{Span, SymbolTable};
 use crate::error::BitBoxError;
 use crate::mv::Mv;
 
 pub trait Execute {
     fn execute(&mut self, mv: &mut Mv);
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Label {
+    pub name: String,
+    pub span: Span,
+    pub def: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Either<L, R> {
+    Left(L),
+    Right(R),
+}
+
+impl<L, R> Either<L, R> {
+    pub fn map_left<F, T>(self, f: F) -> Either<T, R>
+    where
+        F: FnOnce(L) -> T,
+    {
+        match self {
+            Either::Left(l) => Either::Left(f(l)),
+            Either::Right(r) => Either::Right(r),
+        }
+    }
+
+    pub fn map_right<F, T>(self, f: F) -> Either<L, T>
+    where
+        F: FnOnce(R) -> T,
+    {
+        match self {
+            Either::Left(l) => Either::Left(l),
+            Either::Right(r) => Either::Right(f(r)),
+        }
+    }
 }
 
 #[repr(u8)]
@@ -92,7 +127,10 @@ pub enum Opcode {
     Pop,
     Add,
     Inc,
+    Eq,
+    Jne,
     Hult,
+    PrintReg,
 }
 
 impl TryFrom<u8> for Opcode {
@@ -105,7 +143,10 @@ impl TryFrom<u8> for Opcode {
             2 => Ok(Opcode::Pop),
             3 => Ok(Opcode::Add),
             4 => Ok(Opcode::Inc),
-            5 => Ok(Opcode::Hult),
+            5 => Ok(Opcode::Eq),
+            6 => Ok(Opcode::Jne),
+            7 => Ok(Opcode::Hult),
+            8 => Ok(Opcode::PrintReg),
             _ => Err(BitBoxError::InvalidOpcode(value)),
         }
     }
@@ -173,16 +214,28 @@ pub enum Data {
     Reg2(Register, Register),
     Reg3(Register, Register, Register),
     Imm(Register, Imm),
+    RegLabel(Register, Register, Either<Label, u32>),
 }
 
 impl Data {
-    pub fn to_bytes(&self) -> Vec<u8> {
+    pub fn to_bytes(&self, symbol_table: &SymbolTable) -> Vec<u8> {
         match self {
             Self::NoArgs => vec![],
             Self::Reg1(reg) => vec![*reg as u8],
             Self::Reg2(reg1, reg2) => vec![*reg1 as u8, *reg2 as u8],
             Self::Reg3(reg1, reg2, reg3) => vec![*reg1 as u8, *reg2 as u8, *reg3 as u8],
             Self::Imm(reg, imm) => vec![*reg as u8].into_iter().chain(imm.0.clone()).collect(),
+            // TODO: remove unwrap
+            Self::RegLabel(lhs, rhs, Either::Left(Label { name, .. })) => {
+                vec![*lhs as u8, *rhs as u8]
+                    .into_iter()
+                    .chain(symbol_table.get(name).unwrap().to_le_bytes().to_vec())
+                    .collect()
+            }
+            Self::RegLabel(lhs, rhs, Either::Right(value)) => vec![*lhs as u8, *rhs as u8]
+                .into_iter()
+                .chain(value.to_le_bytes().to_vec())
+                .collect(),
         }
     }
 
@@ -193,6 +246,7 @@ impl Data {
             Self::Reg2(_, _) => 2,
             Self::Reg3(_, _, _) => 3,
             Self::Imm(_, imm) => 1 + imm.0.len(),
+            Self::RegLabel(..) => 6,
         }
     }
 }
@@ -209,11 +263,11 @@ pub struct Instruction {
 }
 
 impl Instruction {
-    pub fn to_bytes(&self) -> Vec<u8> {
+    pub fn to_bytes(&self, symbol_table: &SymbolTable) -> Vec<u8> {
         let mut bytes = Vec::new();
         bytes.push(self.opcode as u8);
         bytes.push(self.r#type.as_u8());
-        bytes.extend(self.data.to_bytes());
+        bytes.extend(self.data.to_bytes(symbol_table));
         bytes
     }
 
@@ -278,7 +332,33 @@ impl Execute for Instruction {
                 }
                 _ => unreachable!(),
             },
+            Opcode::Jne => match self.data {
+                Data::RegLabel(lhs, rhs, Either::Right(label)) => {
+                    let lhs_value = mv.get_regester(lhs as u8);
+                    let rhs_value = mv.get_regester(rhs as u8);
+                    if lhs_value == rhs_value {
+                        return;
+                    }
+                    mv.pc = label as usize;
+                }
+                _ => unreachable!(),
+            },
+            Opcode::Eq => match self.data {
+                Data::Reg3(des, reg_lhs, reg_rhs) => {
+                    let lhs = mv.get_regester(reg_lhs as u8);
+                    let rhs = mv.get_regester(reg_rhs as u8);
+                    mv.set_regester(des as u8, (lhs == rhs) as u32);
+                }
+                _ => unreachable!(),
+            },
             Opcode::Hult => mv.running = false,
+            Opcode::PrintReg => match self.data {
+                Data::Reg1(reg) => {
+                    let value = mv.get_regester(reg as u8);
+                    println!("{}", value);
+                }
+                _ => unreachable!(),
+            },
         }
     }
 }
