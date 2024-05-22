@@ -9,4 +9,6 @@ pub enum BitBoxError {
     InvalidOpcode(u8),
     #[error("Register out of bounds at {}..{}", .1.col_start, .1.col_end)]
     RegisterOutOfBounds(u8, Span),
+    #[error("Unknown label {}..{}", .1.col_start, .1.col_end)]
+    UnknownLabel(String, Span),
 }

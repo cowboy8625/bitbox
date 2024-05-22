@@ -2,6 +2,7 @@ use crate::asm::{Span, SymbolTable};
 use crate::error::BitBoxError;
 use crate::mv::Mv;
 use crate::utils::Either;
+use anyhow::Result;
 
 pub trait Execute {
     fn execute(&mut self, mv: &mut Mv);
@@ -191,24 +192,29 @@ pub enum Data {
 }
 
 impl Data {
-    pub fn to_bytes(&self, symbol_table: &SymbolTable) -> Vec<u8> {
+    pub fn to_bytes(&self, symbol_table: &SymbolTable) -> Result<Vec<u8>> {
         match self {
-            Self::NoArgs => vec![],
-            Self::Reg1(reg) => vec![*reg as u8],
-            Self::Reg2(reg1, reg2) => vec![*reg1 as u8, *reg2 as u8],
-            Self::Reg3(reg1, reg2, reg3) => vec![*reg1 as u8, *reg2 as u8, *reg3 as u8],
-            Self::Imm(reg, imm) => vec![*reg as u8].into_iter().chain(imm.0.clone()).collect(),
-            // TODO: remove unwrap
-            Self::RegLabel(lhs, rhs, Either::Left(Label { name, .. })) => {
-                vec![*lhs as u8, *rhs as u8]
+            Self::NoArgs => Ok(vec![]),
+            Self::Reg1(reg) => Ok(vec![*reg as u8]),
+            Self::Reg2(reg1, reg2) => Ok(vec![*reg1 as u8, *reg2 as u8]),
+            Self::Reg3(reg1, reg2, reg3) => Ok(vec![*reg1 as u8, *reg2 as u8, *reg3 as u8]),
+            Self::Imm(reg, imm) => Ok(vec![*reg as u8].into_iter().chain(imm.0.clone()).collect()),
+            Self::RegLabel(lhs, rhs, Either::Left(Label { name, span, .. })) => {
+                Ok(vec![*lhs as u8, *rhs as u8]
                     .into_iter()
-                    .chain(symbol_table.get(name).unwrap().to_le_bytes().to_vec())
-                    .collect()
+                    .chain(
+                        symbol_table
+                            .get(name)
+                            .ok_or(BitBoxError::UnknownLabel(name.clone(), *span))?
+                            .to_le_bytes()
+                            .to_vec(),
+                    )
+                    .collect())
             }
-            Self::RegLabel(lhs, rhs, Either::Right(value)) => vec![*lhs as u8, *rhs as u8]
+            Self::RegLabel(lhs, rhs, Either::Right(value)) => Ok(vec![*lhs as u8, *rhs as u8]
                 .into_iter()
                 .chain(value.to_le_bytes().to_vec())
-                .collect(),
+                .collect()),
         }
     }
 
@@ -236,12 +242,12 @@ pub struct Instruction {
 }
 
 impl Instruction {
-    pub fn to_bytes(&self, symbol_table: &SymbolTable) -> Vec<u8> {
+    pub fn to_bytes(&self, symbol_table: &SymbolTable) -> Result<Vec<u8>> {
         let mut bytes = Vec::new();
         bytes.push(self.opcode as u8);
         bytes.push(self.r#type.as_u8());
-        bytes.extend(self.data.to_bytes(symbol_table));
-        bytes
+        bytes.extend(self.data.to_bytes(symbol_table)?);
+        Ok(bytes)
     }
 
     pub fn size(&self) -> u32 {

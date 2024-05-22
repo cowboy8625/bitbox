@@ -1,15 +1,13 @@
 mod lexer;
 mod parser;
+use self::parser::Text;
 use crate::asm::{
     lexer::{Token, TokenKind},
     parser::Item,
 };
-use std::collections::HashMap;
-
-use anyhow::Result;
-
-use self::parser::Text;
 use crate::instructions::Label;
+use anyhow::Result;
+use std::collections::HashMap;
 
 pub type SymbolTable = HashMap<String, u32>;
 
@@ -36,7 +34,7 @@ pub fn assemble(src: &str) -> Result<Vec<u8>> {
             }
             Item::Text(text) => {
                 for instruction in text.iter() {
-                    let opcode = instruction.opcode.to_bytes(&symbol_table);
+                    let opcode = instruction.opcode.to_bytes(&symbol_table)?;
                     program.extend_from_slice(&opcode);
                 }
             }
