@@ -77,6 +77,18 @@ vm_test!(
 );
 
 vm_test!(
+    div,
+    r#"
+        load[u32] %0 100
+        load[u32] %1 5
+        div[u32] %2 %0 %1
+    "#,
+    (Register::R0, 100), // lhs
+    (Register::R1, 5),   // rhs
+    (Register::R2, 20),  // result
+);
+
+vm_test!(
     inc,
     r#"
         load[u32] %0 0
