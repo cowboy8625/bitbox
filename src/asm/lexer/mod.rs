@@ -29,9 +29,11 @@ impl From<(Span, Span)> for Span {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum TokenKind {
+    KeywordLoad,
+    KeywordStore,
+    KeywordAloc,
     KeywordPush,
     KeywordPop,
-    KeywordLoad,
     KeywordAdd,
     KeywordSub,
     KeywordDiv,
@@ -155,14 +157,16 @@ impl<'a> Lexer<'a> {
         }
 
         let kind = match identifier.as_str() {
+            "load" => TokenKind::KeywordLoad,
+            "store" => TokenKind::KeywordStore,
+            "aloc" => TokenKind::KeywordAloc,
             "push" => TokenKind::KeywordPush,
             "pop" => TokenKind::KeywordPop,
-            "inc" => TokenKind::KeywordInc,
-            "load" => TokenKind::KeywordLoad,
             "add" => TokenKind::KeywordAdd,
             "sub" => TokenKind::KeywordSub,
             "div" => TokenKind::KeywordDiv,
             "mul" => TokenKind::KeywordMul,
+            "inc" => TokenKind::KeywordInc,
             "eq" => TokenKind::KeywordEq,
             "jne" => TokenKind::KeywordJne,
             "hult" => TokenKind::KeywordHult,

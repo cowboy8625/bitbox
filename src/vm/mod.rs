@@ -5,16 +5,17 @@ use crate::instructions::{Data, Execute, Imm, Instruction, Opcode, Register, Typ
 use crate::utils::Either;
 use anyhow::Result;
 
-pub struct Mv {
+pub struct Vm {
     program: Vec<u8>,
     regesters: Vec<u32>,
     stack: Vec<u32>,
+    heap: Vec<u8>,
     pub pc: usize,
     pub running: bool,
 }
 
 // Public implementation
-impl Mv {
+impl Vm {
     pub const REGESTER_COUNT: usize = 32;
     pub fn new(program: Vec<u8>) -> Result<Self> {
         let entry_point = &program[Header::ENTRY_OFFSET..Header::ENTRY_OFFSET + 4];
@@ -33,6 +34,7 @@ impl Mv {
             program,
             regesters: vec![0; Self::REGESTER_COUNT],
             stack: Vec::new(),
+            heap: Vec::new(),
             pc,
             running: true,
         })
@@ -54,10 +56,42 @@ impl Mv {
         self.stack.pop().unwrap()
     }
 
+    pub fn set_heap_u8(&mut self, dest: u32, value: u8) {
+        self.heap[dest as usize] = value
+    }
+
+    pub fn set_heap_u16(&mut self, dest: u32, value: u16) {
+        let bytes = value.to_le_bytes();
+        self.heap[dest as usize] = bytes[0];
+        self.heap[dest as usize + 1] = bytes[1];
+    }
+
+    pub fn set_heap_u32(&mut self, dest: u32, value: u32) {
+        let bytes = value.to_le_bytes();
+        self.heap[dest as usize] = bytes[0];
+        self.heap[dest as usize + 1] = bytes[1];
+        self.heap[dest as usize + 2] = bytes[2];
+        self.heap[dest as usize + 3] = bytes[3];
+    }
+
+    pub fn set_heap_u64(&mut self, dest: u32, value: u64) {
+        let bytes = value.to_le_bytes();
+        self.heap[dest as usize] = bytes[0];
+        self.heap[dest as usize + 1] = bytes[1];
+        self.heap[dest as usize + 2] = bytes[2];
+        self.heap[dest as usize + 3] = bytes[3];
+        self.heap[dest as usize + 4] = bytes[4];
+        self.heap[dest as usize + 5] = bytes[5];
+        self.heap[dest as usize + 6] = bytes[6];
+        self.heap[dest as usize + 7] = bytes[7];
+    }
+
     pub fn execute(&mut self) -> Result<()> {
         let opcode: Opcode = self.get_next_byte().try_into()?;
         match opcode {
             Opcode::Load => self.opcode_1reg_imm(Opcode::Load)?,
+            Opcode::Store => self.opcode_2reg(Opcode::Store)?,
+            Opcode::Aloc => self.opcode_1reg(Opcode::Aloc)?,
             Opcode::Push => self.opcode_1reg(Opcode::Push)?,
             Opcode::Pop => self.opcode_1reg(Opcode::Pop)?,
             Opcode::Add => self.opcode_3reg(Opcode::Add)?,
@@ -85,7 +119,7 @@ impl Mv {
     }
 }
 // Private implementation
-impl Mv {
+impl Vm {
     fn get_next_byte(&mut self) -> u8 {
         let pc = self.pc;
         self.pc += 1;
@@ -109,6 +143,19 @@ impl Mv {
             opcode,
             r#type,
             data: Data::Reg1(reg),
+        }
+        .execute(self);
+        Ok(())
+    }
+
+    fn opcode_2reg(&mut self, opcode: Opcode) -> Result<()> {
+        let r#type: Type = self.get_next_byte().try_into()?;
+        let reg1: Register = (self.get_next_byte(), Span::default()).try_into()?;
+        let reg2: Register = (self.get_next_byte(), Span::default()).try_into()?;
+        Instruction {
+            opcode,
+            r#type,
+            data: Data::Reg2(reg1, reg2),
         }
         .execute(self);
         Ok(())
@@ -209,20 +256,20 @@ impl Mv {
 }
 
 impl Execute for Instruction {
-    fn execute(&mut self, mv: &mut Mv) {
+    fn execute(&mut self, vm: &mut Vm) {
         match self.opcode {
             Opcode::Load => match &self.data {
                 Data::Imm(reg, Imm(value)) => {
                     let size = self.r#type.bytes();
                     // debug_assert_eq!(value.len(), size as usize);
                     match size {
-                        8 => mv.set_regester(*reg as u8, value[0] as u32),
-                        16 => mv.set_regester(
+                        8 => vm.set_regester(*reg as u8, value[0] as u32),
+                        16 => vm.set_regester(
                             *reg as u8,
                             u16::from_le_bytes(value[0..2].try_into().expect("Not enough bytes"))
                                 as u32,
                         ),
-                        32 => mv.set_regester(
+                        32 => vm.set_regester(
                             *reg as u8,
                             u32::from_le_bytes(value[0..4].try_into().expect("Not enough bytes")),
                         ),
@@ -231,99 +278,123 @@ impl Execute for Instruction {
                 }
                 _ => unimplemented!("Load with two registers not implemented"),
             },
+            Opcode::Store => match &self.data {
+                Data::Reg2(reg1, reg2) => {
+                    let des = *vm.get_regester(*reg1 as u8);
+                    let value = *vm.get_regester(*reg2 as u8);
+                    match self.r#type {
+                        Type::U(8) => vm.set_heap_u8(des, value as u8),
+                        Type::U(16) => vm.set_heap_u16(des, value as u16),
+                        Type::U(32) => vm.set_heap_u32(des, value),
+                        Type::U(64) => vm.set_heap_u64(des, value as u64),
+                        Type::Void => todo!(),
+                        _ => unimplemented!("Unimplemented type: {:?}", self.r#type),
+                    }
+                }
+                _ => unimplemented!("Store with two registers not implemented"),
+            },
+            Opcode::Aloc => match self.data {
+                Data::Reg1(reg) => {
+                    let value = *vm.get_regester(reg as u8) as usize;
+                    let current_heap_size = vm.heap.len();
+                    vm.heap
+                        .resize_with(current_heap_size + value, Default::default);
+                }
+                _ => unreachable!("Aloc with two registers not implemented"),
+            },
             Opcode::Push => match self.data {
                 Data::Reg1(reg) => {
-                    let value = *mv.get_regester(reg as u8);
-                    mv.push_to_stack(value);
+                    let value = *vm.get_regester(reg as u8);
+                    vm.push_to_stack(value);
                 }
                 _ => unreachable!("Push with two registers not implemented"),
             },
             Opcode::Pop => match self.data {
                 Data::Reg1(reg) => {
-                    let value = mv.pop_from_stack();
-                    mv.set_regester(reg as u8, value);
+                    let value = vm.pop_from_stack();
+                    vm.set_regester(reg as u8, value);
                 }
                 _ => unreachable!("Push with two registers not implemented"),
             },
             Opcode::Add => match self.data {
                 Data::Reg3(des, reg_lhs, reg_rhs) => {
-                    let lhs = mv.get_regester(reg_lhs as u8);
-                    let rhs = mv.get_regester(reg_rhs as u8);
-                    mv.set_regester(des as u8, lhs + rhs);
+                    let lhs = vm.get_regester(reg_lhs as u8);
+                    let rhs = vm.get_regester(reg_rhs as u8);
+                    vm.set_regester(des as u8, lhs + rhs);
                 }
                 _ => unreachable!(),
             },
             Opcode::Sub => match self.data {
                 Data::Reg3(des, reg_lhs, reg_rhs) => {
-                    let lhs = mv.get_regester(reg_lhs as u8);
-                    let rhs = mv.get_regester(reg_rhs as u8);
-                    mv.set_regester(des as u8, lhs - rhs);
+                    let lhs = vm.get_regester(reg_lhs as u8);
+                    let rhs = vm.get_regester(reg_rhs as u8);
+                    vm.set_regester(des as u8, lhs - rhs);
                 }
                 _ => unreachable!(),
             },
             Opcode::Div => match self.data {
                 Data::Reg3(des, reg_lhs, reg_rhs) => {
-                    let lhs = mv.get_regester(reg_lhs as u8);
-                    let rhs = mv.get_regester(reg_rhs as u8);
-                    mv.set_regester(des as u8, lhs / rhs);
+                    let lhs = vm.get_regester(reg_lhs as u8);
+                    let rhs = vm.get_regester(reg_rhs as u8);
+                    vm.set_regester(des as u8, lhs / rhs);
                 }
                 _ => unreachable!(),
             },
             Opcode::Mul => match self.data {
                 Data::Reg3(des, reg_lhs, reg_rhs) => {
-                    let lhs = mv.get_regester(reg_lhs as u8);
-                    let rhs = mv.get_regester(reg_rhs as u8);
-                    mv.set_regester(des as u8, lhs * rhs);
+                    let lhs = vm.get_regester(reg_lhs as u8);
+                    let rhs = vm.get_regester(reg_rhs as u8);
+                    vm.set_regester(des as u8, lhs * rhs);
                 }
                 _ => unreachable!(),
             },
             Opcode::Inc => match self.data {
                 Data::Reg1(reg) => {
-                    let value = mv.get_regester(reg as u8);
-                    mv.set_regester(reg as u8, value + 1);
+                    let value = vm.get_regester(reg as u8);
+                    vm.set_regester(reg as u8, value + 1);
                 }
                 _ => unreachable!(),
             },
             Opcode::Jne => match self.data {
                 Data::RegLabel(lhs, rhs, Either::Right(label)) => {
-                    let lhs_value = mv.get_regester(lhs as u8);
-                    let rhs_value = mv.get_regester(rhs as u8);
+                    let lhs_value = vm.get_regester(lhs as u8);
+                    let rhs_value = vm.get_regester(rhs as u8);
                     if lhs_value == rhs_value {
                         return;
                     }
-                    mv.pc = label as usize;
+                    vm.pc = label as usize;
                 }
                 _ => unreachable!(),
             },
             Opcode::Eq => match self.data {
                 Data::Reg3(des, reg_lhs, reg_rhs) => {
-                    let lhs = mv.get_regester(reg_lhs as u8);
-                    let rhs = mv.get_regester(reg_rhs as u8);
-                    mv.set_regester(des as u8, (lhs == rhs) as u32);
+                    let lhs = vm.get_regester(reg_lhs as u8);
+                    let rhs = vm.get_regester(reg_rhs as u8);
+                    vm.set_regester(des as u8, (lhs == rhs) as u32);
                 }
                 _ => unreachable!(),
             },
-            Opcode::Hult => mv.running = false,
+            Opcode::Hult => vm.running = false,
             Opcode::PrintReg => match self.data {
                 Data::Reg1(reg) => {
-                    let value = mv.get_regester(reg as u8);
+                    let value = vm.get_regester(reg as u8);
                     println!("{}", value);
                 }
                 _ => unreachable!(),
             },
             Opcode::And => match self.data {
                 Data::Reg3(des, reg_lhs, reg_rhs) => {
-                    let lhs = mv.get_regester(reg_lhs as u8);
-                    let rhs = mv.get_regester(reg_rhs as u8);
-                    mv.set_regester(des as u8, lhs & rhs);
+                    let lhs = vm.get_regester(reg_lhs as u8);
+                    let rhs = vm.get_regester(reg_rhs as u8);
+                    vm.set_regester(des as u8, lhs & rhs);
                 }
                 _ => unreachable!(),
             },
             Opcode::Or => match self.data {
                 Data::Reg3(des, reg_lhs, reg_rhs) => {
-                    let lhs = mv.get_regester(reg_lhs as u8);
-                    let rhs = mv.get_regester(reg_rhs as u8);
-                    mv.set_regester(des as u8, lhs | rhs);
+                    let lhs = vm.get_regester(reg_lhs as u8);
+                    let rhs = vm.get_regester(reg_rhs as u8);
+                    vm.set_regester(des as u8, lhs | rhs);
                 }
                 _ => unreachable!(),
             },

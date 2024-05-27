@@ -1,11 +1,11 @@
 use crate::asm::{Span, SymbolTable};
 use crate::error::BitBoxError;
-use crate::mv::Mv;
 use crate::utils::Either;
+use crate::vm::Vm;
 use anyhow::Result;
 
 pub trait Execute {
-    fn execute(&mut self, mv: &mut Mv);
+    fn execute(&mut self, mv: &mut Vm);
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -97,6 +97,8 @@ impl TryFrom<(u8, Span)> for Register {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Opcode {
     Load,
+    Store,
+    Aloc,
     Push,
     Pop,
     Add,
@@ -118,19 +120,21 @@ impl TryFrom<u8> for Opcode {
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(Opcode::Load),
-            1 => Ok(Opcode::Push),
-            2 => Ok(Opcode::Pop),
-            3 => Ok(Opcode::Add),
-            4 => Ok(Opcode::Sub),
-            5 => Ok(Opcode::Div),
-            6 => Ok(Opcode::Mul),
-            7 => Ok(Opcode::Inc),
-            8 => Ok(Opcode::Eq),
-            9 => Ok(Opcode::Jne),
-            10 => Ok(Opcode::Hult),
-            11 => Ok(Opcode::PrintReg),
-            12 => Ok(Opcode::And),
-            13 => Ok(Opcode::Or),
+            1 => Ok(Opcode::Store),
+            2 => Ok(Opcode::Aloc),
+            3 => Ok(Opcode::Push),
+            4 => Ok(Opcode::Pop),
+            5 => Ok(Opcode::Add),
+            6 => Ok(Opcode::Sub),
+            7 => Ok(Opcode::Div),
+            8 => Ok(Opcode::Mul),
+            9 => Ok(Opcode::Inc),
+            10 => Ok(Opcode::Eq),
+            11 => Ok(Opcode::Jne),
+            12 => Ok(Opcode::Hult),
+            13 => Ok(Opcode::PrintReg),
+            14 => Ok(Opcode::And),
+            15 => Ok(Opcode::Or),
             _ => Err(BitBoxError::InvalidOpcode(value)),
         }
     }

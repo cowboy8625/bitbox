@@ -1,8 +1,8 @@
 mod asm;
 mod error;
 mod instructions;
-mod mv;
 mod utils;
+mod vm;
 use anyhow::Result;
 
 // TODO: SYSCALL for now we will do a print instruction
@@ -18,5 +18,5 @@ fn main() -> Result<()> {
         hult
     "#;
     let program = asm::assemble(src)?;
-    mv::Mv::new(program)?.run()
+    vm::Vm::new(program)?.run()
 }

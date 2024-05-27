@@ -16,15 +16,15 @@ macro_rules! vm_test {
                 $src
             );
             let program = asm::assemble(&src)?;
-            let mut mv = Mv::new(program)?;
-            mv.run()?;
+            let mut vm = Vm::new(program)?;
+            vm.run()?;
             let mut start = 0;
             $(
-                assert_eq!(mv.get_regester($reg as u8), &$expected);
+                assert_eq!(vm.get_regester($reg as u8), &$expected);
                 start += 1;
             )*
-            for i in start..Mv::REGESTER_COUNT {
-                assert_eq!(mv.get_regester(i as u8), &0);
+            for i in start..Vm::REGESTER_COUNT {
+                assert_eq!(vm.get_regester(i as u8), &0);
             }
             Ok(())
         }
@@ -137,3 +137,49 @@ vm_test!(
     (Register::R0, 1),
     (Register::R1, 1),
 );
+
+#[test]
+fn store() -> Result<()> {
+    let src = r#"
+        .entry main
+        main:
+            load[u8] %0 1   ; One Byte
+            aloc[u8] %0     ; Allocate 1 Byte
+            load[u8] %1 100 ; Value
+            load[u8] %2 0   ; Pointer/Index
+            store[u8] %2 %1 ; Store Pointer/Index Value
+            hult
+        "#;
+    let program = asm::assemble(&src)?;
+    let mut vm = Vm::new(program)?;
+    vm.run()?;
+    assert_eq!(vm.get_regester(0), &1);
+    assert_eq!(vm.get_regester(1), &100);
+    assert_eq!(vm.get_regester(2), &0);
+    for i in 3..Vm::REGESTER_COUNT {
+        assert_eq!(vm.get_regester(i as u8), &0);
+    }
+    assert_eq!(vm.heap.len(), 1);
+    assert_eq!(vm.heap[0], 100);
+    Ok(())
+}
+
+#[test]
+fn aloc() -> Result<()> {
+    let src = r#"
+        .entry main
+        main:
+            load[u8] %0 1
+            aloc[u8] %0
+            hult
+        "#;
+    let program = asm::assemble(&src)?;
+    let mut vm = Vm::new(program)?;
+    vm.run()?;
+    assert_eq!(vm.get_regester(0), &1);
+    for i in 1..Vm::REGESTER_COUNT {
+        assert_eq!(vm.get_regester(i as u8), &0);
+    }
+    assert_eq!(vm.heap.len(), 1);
+    Ok(())
+}

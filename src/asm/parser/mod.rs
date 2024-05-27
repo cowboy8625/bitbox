@@ -250,7 +250,7 @@ impl Parser {
         Ok(())
     }
 
-    fn _parse_reg_2(&mut self, token: Token, opcode: Opcode) -> Result<()> {
+    fn parse_reg_2(&mut self, token: Token, opcode: Opcode) -> Result<()> {
         let r#type = self.parse_type()?;
         let des = self.parse_reg()?;
         let lhs = self.parse_reg()?;
@@ -392,10 +392,11 @@ impl Parser {
         while let Some(token) = self.next() {
             let kind = token.kind.clone();
             let maybe_error = match kind {
-                TokenKind::Period => self.parse_directive(token),
+                TokenKind::KeywordLoad => self.parse_reg_imm(token, Opcode::Load),
+                TokenKind::KeywordStore => self.parse_reg_2(token, Opcode::Store),
+                TokenKind::KeywordAloc => self.parse_reg_1(token, Opcode::Aloc),
                 TokenKind::KeywordPush => self.parse_reg_1(token, Opcode::Push),
                 TokenKind::KeywordPop => self.parse_reg_1(token, Opcode::Pop),
-                TokenKind::KeywordLoad => self.parse_reg_imm(token, Opcode::Load),
                 TokenKind::KeywordAdd => self.parse_reg_3(token, Opcode::Add),
                 TokenKind::KeywordSub => self.parse_reg_3(token, Opcode::Sub),
                 TokenKind::KeywordDiv => self.parse_reg_3(token, Opcode::Div),
@@ -412,6 +413,7 @@ impl Parser {
                     let _ = self.consume(&[TokenKind::Colon], ParserError::ExpectedColon)?;
                     continue;
                 }
+                TokenKind::Period => self.parse_directive(token),
                 TokenKind::Delimiter => continue,
                 _ => todo!("report error {:?}", kind),
             };
