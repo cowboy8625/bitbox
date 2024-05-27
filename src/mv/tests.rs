@@ -65,6 +65,18 @@ vm_test!(
 );
 
 vm_test!(
+    sub,
+    r#"
+        load[u32] %0 124
+        load[u32] %1 123
+        sub[u32] %2 %0 %1
+    "#,
+    (Register::R0, 124),
+    (Register::R1, 123),
+    (Register::R2, 1),
+);
+
+vm_test!(
     inc,
     r#"
         load[u32] %0 0
