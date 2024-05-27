@@ -38,3 +38,12 @@ Bitbox is currently just a register based virtual machine.  The goal of the proj
 |✅  hult    |    |        N/A         |
 |🟥  nop     |    |        N/A         |
 |🟥  ige     |    |        N/A         |
+|🟥  not     |    | reg  |     N/A     |
+|✅  and     |    | reg  | reg  | reg  |
+|✅  or      |    | reg  | reg  | reg  |
+|🟥  xor     |    | reg  | reg  | reg  |
+|🟥  shl     |    | reg  | reg  | reg  |
+|🟥  shr     |    | reg  | reg  | reg  |
+|🟥  sar     |    | reg  | reg  | reg  |
+|🟥  rol     |    | reg  | reg  | reg  |
+|🟥  ror     |    | reg  | reg  | reg  |

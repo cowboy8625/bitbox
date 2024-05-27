@@ -38,6 +38,8 @@ pub enum TokenKind {
     KeywordInc,
     KeywordHult,
     KeywordPrintReg,
+    KeywordAnd,
+    KeywordOr,
     Number(u32),
     Identifier(String),
     Colon,
@@ -159,6 +161,8 @@ impl<'a> Lexer<'a> {
             "jne" => TokenKind::KeywordJne,
             "hult" => TokenKind::KeywordHult,
             "printreg" => TokenKind::KeywordPrintReg,
+            "and" => TokenKind::KeywordAnd,
+            "or" => TokenKind::KeywordOr,
             _ => TokenKind::Identifier(identifier),
         };
         let span = self.span();

@@ -105,6 +105,8 @@ pub enum Opcode {
     Jne,
     Hult,
     PrintReg,
+    And,
+    Or,
 }
 
 impl TryFrom<u8> for Opcode {
@@ -121,6 +123,8 @@ impl TryFrom<u8> for Opcode {
             6 => Ok(Opcode::Jne),
             7 => Ok(Opcode::Hult),
             8 => Ok(Opcode::PrintReg),
+            9 => Ok(Opcode::And),
+            10 => Ok(Opcode::Or),
             _ => Err(BitBoxError::InvalidOpcode(value)),
         }
     }

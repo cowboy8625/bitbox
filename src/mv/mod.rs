@@ -1,3 +1,5 @@
+#[cfg(test)]
+mod tests;
 use crate::asm::{Header, Span};
 use crate::instructions::{Data, Execute, Imm, Instruction, Opcode, Register, Type};
 use crate::utils::Either;
@@ -13,6 +15,7 @@ pub struct Mv {
 
 // Public implementation
 impl Mv {
+    pub const REGESTER_COUNT: usize = 32;
     pub fn new(program: Vec<u8>) -> Result<Self> {
         let entry_point = &program[Header::ENTRY_OFFSET..Header::ENTRY_OFFSET + 4];
         let pc = usize::from_le_bytes([
@@ -28,7 +31,7 @@ impl Mv {
 
         Ok(Self {
             program,
-            regesters: vec![0; 32],
+            regesters: vec![0; Self::REGESTER_COUNT],
             stack: Vec::new(),
             pc,
             running: true,
@@ -63,6 +66,8 @@ impl Mv {
             Opcode::Jne => self.opcode_1reg_label(Opcode::Jne)?,
             Opcode::Hult => self.opcode_noargs(Opcode::Hult)?,
             Opcode::PrintReg => self.opcode_1reg(Opcode::PrintReg)?,
+            Opcode::And => self.opcode_3reg(Opcode::And)?,
+            Opcode::Or => self.opcode_3reg(Opcode::Or)?,
         }
         Ok(())
     }
@@ -168,7 +173,7 @@ impl Mv {
             Type::I(32) => todo!(),
             Type::I(64) => todo!(),
             Type::I(128) => todo!(),
-            Type::Void => todo!(),
+            Type::Void => {}
             _ => unreachable!("Unimplemented type: {:?}", r#type),
         }
 
@@ -276,6 +281,22 @@ impl Execute for Instruction {
                 Data::Reg1(reg) => {
                     let value = mv.get_regester(reg as u8);
                     println!("{}", value);
+                }
+                _ => unreachable!(),
+            },
+            Opcode::And => match self.data {
+                Data::Reg3(des, reg_lhs, reg_rhs) => {
+                    let lhs = mv.get_regester(reg_lhs as u8);
+                    let rhs = mv.get_regester(reg_rhs as u8);
+                    mv.set_regester(des as u8, lhs & rhs);
+                }
+                _ => unreachable!(),
+            },
+            Opcode::Or => match self.data {
+                Data::Reg3(des, reg_lhs, reg_rhs) => {
+                    let lhs = mv.get_regester(reg_lhs as u8);
+                    let rhs = mv.get_regester(reg_rhs as u8);
+                    mv.set_regester(des as u8, lhs | rhs);
                 }
                 _ => unreachable!(),
             },

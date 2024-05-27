@@ -41,12 +41,14 @@ pub enum ParserError {
     ExpectedColon(TokenKind, Span),
     #[error("Unexpected EOF")]
     UnexpectedEof,
-    #[error("Expected Right Bracket {0:?} but found {1:?}")]
+    #[error("Expected Right Bracket but found {0:?} at {1:?}")]
     ExpectedRightBracket(TokenKind, Span),
-    #[error("Expected Left Bracket {0:?} but found {1:?}")]
+    #[error("Expected Left Bracket but found {0:?} at {1:?}")]
     ExpectedLeftBracket(TokenKind, Span),
-    #[error("Expected Signed or Unsigned {0:?} but found {1:?}")]
+    #[error("Expected Signed or Unsigned but found {0:?} at {1:?}")]
     ExpectedSign(TokenKind, Span),
+    #[error("Invalid Imm Type found {0:?} at {1:?}")]
+    InvalidImmType(TokenKind, Span),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -193,27 +195,47 @@ impl Parser {
         Ok(r#type)
     }
 
-    fn parse_value<T>(&mut self) -> Result<T>
-    where
-        T: std::convert::From<u32>,
-    {
+    fn parse_value(&mut self, t: Type) -> Result<Vec<u8>> {
         let token = match self.next() {
             Some(token) => token,
             None => bail!(ParserError::UnexpectedEof),
         };
 
-        let kind = match token.kind {
+        let value = match token.kind {
             TokenKind::Number(value) => value,
             _ => bail!(ParserError::ExpectedNumber(token.kind, token.span)),
         };
 
-        Ok(T::from(kind))
+        match t {
+            Type::U(8) | Type::I(8) => Ok(vec![value as u8]),
+            Type::U(16) | Type::I(16) => Ok(vec![value as u8, (value >> 8) as u8]),
+            Type::U(32) | Type::I(32) => Ok(vec![
+                value as u8,
+                (value >> 8) as u8,
+                (value >> 16) as u8,
+                (value >> 24) as u8,
+            ]),
+            Type::U(64) | Type::I(64) => Ok(vec![
+                value as u8,
+                (value >> 8) as u8,
+                (value >> 16) as u8,
+                (value >> 24) as u8,
+                // TODO: This can never be 64 bits unless we can change the TokenKind::Number to
+                // hold a u64 or more
+                // (value >> 32) as u8,
+                // (value >> 40) as u8,
+                // (value >> 48) as u8,
+                // (value >> 56) as u8,
+            ]),
+            Type::Void => bail!(ParserError::InvalidImmType(token.kind, token.span)),
+            _ => unimplemented!("{:?} is not implemented", t),
+        }
     }
 
     fn parse_reg_imm(&mut self, token: Token, opcode: Opcode) -> Result<()> {
         let r#type = self.parse_type()?;
         let reg = self.parse_reg()?;
-        let value = self.parse_value::<u32>()?;
+        let value = self.parse_value(r#type)?;
         let end_span = self
             .consume(&[TokenKind::Delimiter], ParserError::ExpectedDelimiter)?
             .span;
@@ -221,7 +243,7 @@ impl Parser {
         let instruction = Instruction {
             opcode,
             r#type,
-            data: Data::Imm(reg, Imm::from(value)),
+            data: Data::Imm(reg, Imm(value)),
         };
         let text = self.create_text(instruction, span);
         self.push_text(text);
@@ -380,6 +402,8 @@ impl Parser {
                 TokenKind::KeywordJne => self.parse_reg_2_label(token, Opcode::Jne),
                 TokenKind::KeywordHult => self.parse_no_args(token, Opcode::Hult),
                 TokenKind::KeywordPrintReg => self.parse_reg_1(token, Opcode::PrintReg),
+                TokenKind::KeywordAnd => self.parse_reg_3(token, Opcode::And),
+                TokenKind::KeywordOr => self.parse_reg_3(token, Opcode::Or),
                 TokenKind::Identifier(_) if matches!(self.peek_kind(), Some(&TokenKind::Colon)) => {
                     self.label = Some(token);
                     let _ = self.consume(&[TokenKind::Colon], ParserError::ExpectedColon)?;
