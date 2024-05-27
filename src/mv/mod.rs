@@ -63,6 +63,7 @@ impl Mv {
             Opcode::Add => self.opcode_3reg(Opcode::Add)?,
             Opcode::Sub => self.opcode_3reg(Opcode::Sub)?,
             Opcode::Div => self.opcode_3reg(Opcode::Div)?,
+            Opcode::Mul => self.opcode_3reg(Opcode::Mul)?,
             Opcode::Inc => self.opcode_1reg(Opcode::Inc)?,
             Opcode::Eq => self.opcode_3reg(Opcode::Eq)?,
             Opcode::Jne => self.opcode_1reg_label(Opcode::Jne)?,
@@ -265,6 +266,14 @@ impl Execute for Instruction {
                     let lhs = mv.get_regester(reg_lhs as u8);
                     let rhs = mv.get_regester(reg_rhs as u8);
                     mv.set_regester(des as u8, lhs / rhs);
+                }
+                _ => unreachable!(),
+            },
+            Opcode::Mul => match self.data {
+                Data::Reg3(des, reg_lhs, reg_rhs) => {
+                    let lhs = mv.get_regester(reg_lhs as u8);
+                    let rhs = mv.get_regester(reg_rhs as u8);
+                    mv.set_regester(des as u8, lhs * rhs);
                 }
                 _ => unreachable!(),
             },

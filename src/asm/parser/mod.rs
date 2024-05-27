@@ -399,6 +399,7 @@ impl Parser {
                 TokenKind::KeywordAdd => self.parse_reg_3(token, Opcode::Add),
                 TokenKind::KeywordSub => self.parse_reg_3(token, Opcode::Sub),
                 TokenKind::KeywordDiv => self.parse_reg_3(token, Opcode::Div),
+                TokenKind::KeywordMul => self.parse_reg_3(token, Opcode::Mul),
                 TokenKind::KeywordEq => self.parse_reg_3(token, Opcode::Eq),
                 TokenKind::KeywordInc => self.parse_reg_1(token, Opcode::Inc),
                 TokenKind::KeywordJne => self.parse_reg_2_label(token, Opcode::Jne),
