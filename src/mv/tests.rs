@@ -8,6 +8,7 @@ fn test_load() -> Result<()> {
     .entry main
     main:
         load[u8] %0 100
+        hult
 "#;
     let program = asm::assemble(src)?;
     let mut mv = Mv::new(program)?;
@@ -16,6 +17,6 @@ fn test_load() -> Result<()> {
     for i in 1..Mv::REGESTER_COUNT {
         assert_eq!(mv.get_regester(i as u8), &0);
     }
-    assert_eq!(mv.get_regester(0), &0);
+    assert_eq!(mv.get_regester(0), &100);
     Ok(())
 }
