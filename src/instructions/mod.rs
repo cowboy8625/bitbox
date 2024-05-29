@@ -5,7 +5,7 @@ use crate::vm::Vm;
 use anyhow::Result;
 
 pub trait Execute {
-    fn execute(&mut self, mv: &mut Vm);
+    fn execute(&mut self, mv: &mut Vm) -> Result<()>;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -110,8 +110,10 @@ pub enum Opcode {
     Jne,
     Hult,
     PrintReg,
+    Call,
     And,
     Or,
+    Return,
 }
 
 impl TryFrom<u8> for Opcode {
@@ -133,8 +135,10 @@ impl TryFrom<u8> for Opcode {
             11 => Ok(Opcode::Jne),
             12 => Ok(Opcode::Hult),
             13 => Ok(Opcode::PrintReg),
-            14 => Ok(Opcode::And),
-            15 => Ok(Opcode::Or),
+            14 => Ok(Opcode::Call),
+            15 => Ok(Opcode::And),
+            16 => Ok(Opcode::Or),
+            17 => Ok(Opcode::Return),
             _ => Err(BitBoxError::InvalidOpcode(value)),
         }
     }
@@ -202,7 +206,8 @@ pub enum Data {
     Reg2(Register, Register),
     Reg3(Register, Register, Register),
     Imm(Register, Imm),
-    RegLabel(Register, Register, Either<Label, u32>),
+    Label(Either<Label, u32>),
+    Reg2Label(Register, Register, Either<Label, u32>),
 }
 
 impl Data {
@@ -213,7 +218,13 @@ impl Data {
             Self::Reg2(reg1, reg2) => Ok(vec![*reg1 as u8, *reg2 as u8]),
             Self::Reg3(reg1, reg2, reg3) => Ok(vec![*reg1 as u8, *reg2 as u8, *reg3 as u8]),
             Self::Imm(reg, imm) => Ok(vec![*reg as u8].into_iter().chain(imm.0.clone()).collect()),
-            Self::RegLabel(lhs, rhs, Either::Left(Label { name, span, .. })) => {
+            Self::Label(Either::Left(Label { name, span, .. })) => Ok(symbol_table
+                .get(name)
+                .ok_or(BitBoxError::UnknownLabel(name.clone(), *span))?
+                .to_le_bytes()
+                .to_vec()),
+            Self::Label(Either::Right(value)) => Ok(value.to_le_bytes().to_vec()),
+            Self::Reg2Label(lhs, rhs, Either::Left(Label { name, span, .. })) => {
                 Ok(vec![*lhs as u8, *rhs as u8]
                     .into_iter()
                     .chain(
@@ -225,7 +236,7 @@ impl Data {
                     )
                     .collect())
             }
-            Self::RegLabel(lhs, rhs, Either::Right(value)) => Ok(vec![*lhs as u8, *rhs as u8]
+            Self::Reg2Label(lhs, rhs, Either::Right(value)) => Ok(vec![*lhs as u8, *rhs as u8]
                 .into_iter()
                 .chain(value.to_le_bytes().to_vec())
                 .collect()),
@@ -239,7 +250,8 @@ impl Data {
             Self::Reg2(_, _) => 2,
             Self::Reg3(_, _, _) => 3,
             Self::Imm(_, imm) => 1 + imm.0.len(),
-            Self::RegLabel(..) => 6,
+            Self::Label(..) => 4,
+            Self::Reg2Label(..) => 6,
         }
     }
 }

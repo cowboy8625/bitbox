@@ -32,13 +32,29 @@ macro_rules! vm_test {
 }
 
 vm_test!(
-    load,
+    load_imm,
     r#"
         load[u8] %0 100
         load[u32] %1 400
     "#,
     (Register::R0, 100),
     (Register::R1, 400),
+);
+
+vm_test!(
+    load_imm_hex,
+    r#"
+        load[u8] %0 0x6_4
+    "#,
+    (Register::R0, 0x64),
+);
+
+vm_test!(
+    load_imm_bin,
+    r#"
+        load[u8] %0 0b0000_0010
+    "#,
+    (Register::R0, 2),
 );
 
 vm_test!(
@@ -137,6 +153,31 @@ vm_test!(
     (Register::R0, 1),
     (Register::R1, 1),
 );
+
+#[test]
+fn call() -> Result<()> {
+    let src = r#"
+    .entry main
+    my_add:
+        add[u32] %0 %1 %0
+        return
+
+    main:
+        load[u32] %0 123
+        load[u32] %1 321
+        call my_add
+        hult
+    "#;
+    let program = asm::assemble(&src)?;
+    let mut vm = Vm::new(program)?;
+    vm.run()?;
+    assert_eq!(vm.get_regester(0), &444);
+    assert_eq!(vm.get_regester(1), &321);
+    for i in 3..Vm::REGESTER_COUNT {
+        assert_eq!(vm.get_regester(i as u8), &0);
+    }
+    Ok(())
+}
 
 #[test]
 fn store() -> Result<()> {

@@ -12,12 +12,25 @@ Bitbox is currently just a register based virtual machine.  The goal of the proj
 
 #### Insturctions Supported
 
+Instructions consist of a 3 main parts.
+
+1. **Code**: this is one byte
+2. **Type**: this is one byte
+  - if `type` is 0b1000_0000 then type is signed integer
+  - if `type` is 0x00 then there are no args
+3. **Args**: this is one byte to as many bytes as needed
+  - **Arg 1**: this is one byte
+  - **Arg 2**: this is two bytes
+  - **Arg 3**: this is three bytes
+  - **Arg 1 with Immediate Value**: this is one to as many bytes as needed. The type will dictate the size.
+
 |instruction |type| arg1 | arg2 | arg3 |
 |:-----------|:--:|:----:|:----:|:----:|
 |✅  load    |    | reg  |     imm     |
+|✅  store   |    | reg  | reg  |      |
 |✅  push    |    | reg  |     N/A     |
 |✅  pop     |    | reg  |     N/A     |
-|🟥  aloc    |    | reg  |     N/A     |
+|✅  aloc    |    | reg  |     N/A     |
 |✅  add     |    | reg  | reg  | reg  |
 |✅  sub     |    | reg  | reg  | reg  |
 |✅  div     |    | reg  | reg  | reg  |
@@ -47,3 +60,5 @@ Bitbox is currently just a register based virtual machine.  The goal of the proj
 |🟥  sar     |    | reg  | reg  | reg  |
 |🟥  rol     |    | reg  | reg  | reg  |
 |🟥  ror     |    | reg  | reg  | reg  |
+|✅  call    |    |    label/imm       |
+|✅  return  |    |         N/A        |

@@ -10,13 +10,24 @@ use anyhow::Result;
 fn main() -> Result<()> {
     let src = r#"
     .entry main
+
+    my_add:
+        add[u32] %0 %0 %1
+        return
+
     main:
-        load[u8] %0 1
-        load[u8] %1 2
-        or[u8] %0 %0 %1
-        printreg[u8] %0
+        ; load[u32] %0 4
+        ; aloc[u32] %0
+        ; load[u32] %1 0
+        ; load[u32] %2 100
+        ; store[u32] %1 %2
+        load[u32] %0 123
+        load[u32] %1 321
+        call my_add
         hult
     "#;
     let program = asm::assemble(src)?;
-    vm::Vm::new(program)?.run()
+    let mut vm = vm::Vm::new(program)?;
+    vm.run()?;
+    Ok(())
 }

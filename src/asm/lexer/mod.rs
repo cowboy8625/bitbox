@@ -4,6 +4,10 @@ pub fn lex(src: &str) -> Vec<Token> {
     Lexer::new(src).lex()
 }
 
+fn is_hex_digit(c: char) -> bool {
+    matches!(c, '0'..='9' | 'a'..='f' | 'A'..='F')
+}
+
 #[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
 pub struct Span {
     pub row_start: usize,
@@ -43,8 +47,10 @@ pub enum TokenKind {
     KeywordInc,
     KeywordHult,
     KeywordPrintReg,
+    KeywordCall,
     KeywordAnd,
     KeywordOr,
+    KeywordReturn,
     Number(u32),
     Identifier(String),
     Colon,
@@ -150,6 +156,38 @@ impl<'a> Lexer<'a> {
         );
     }
 
+    fn lex_hex_number(&mut self) {
+        let mut number = "".to_string();
+        self.next();
+        while let Some(c) = self.next_if(|c| is_hex_digit(c) || c == '_') {
+            if c == '_' {
+                continue;
+            }
+            number.push(c);
+        }
+        let span = self.span();
+        self.add_token_with_span(
+            TokenKind::Number(u32::from_str_radix(&number, 16).expect("invalid number")),
+            span,
+        );
+    }
+
+    fn lex_bin_number(&mut self) {
+        let mut number = "".to_string();
+        self.next();
+        while let Some(c) = self.next_if(|c| c == '0' || c == '1' || c == '_') {
+            if c == '_' {
+                continue;
+            }
+            number.push(c);
+        }
+        let span = self.span();
+        self.add_token_with_span(
+            TokenKind::Number(u32::from_str_radix(&number, 2).expect("invalid number")),
+            span,
+        );
+    }
+
     fn lex_identifier(&mut self, c: char) {
         let mut identifier = c.to_string();
         while let Some(c) = self.next_if(|c| c.is_ascii_alphanumeric() || c == '_') {
@@ -171,8 +209,10 @@ impl<'a> Lexer<'a> {
             "jne" => TokenKind::KeywordJne,
             "hult" => TokenKind::KeywordHult,
             "printreg" => TokenKind::KeywordPrintReg,
+            "call" => TokenKind::KeywordCall,
             "and" => TokenKind::KeywordAnd,
             "or" => TokenKind::KeywordOr,
+            "return" => TokenKind::KeywordReturn,
             _ => TokenKind::Identifier(identifier),
         };
         let span = self.span();
@@ -187,6 +227,8 @@ impl<'a> Lexer<'a> {
     fn lex(mut self) -> Vec<Token> {
         while let Some(c) = self.next() {
             match c {
+                '0' if self.peek() == Some('x') => self.lex_hex_number(),
+                '0' if self.peek() == Some('b') => self.lex_bin_number(),
                 '0'..='9' => self.lex_number(c),
                 'a'..='z' | 'A'..='Z' | '_' => self.lex_identifier(c),
                 ' ' | '\t' => {

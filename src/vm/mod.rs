@@ -1,15 +1,16 @@
 #[cfg(test)]
 mod tests;
 use crate::asm::{Header, Span};
+use crate::error::BitBoxError;
 use crate::instructions::{Data, Execute, Imm, Instruction, Opcode, Register, Type};
 use crate::utils::Either;
-use anyhow::Result;
+use anyhow::{bail, Result};
 
 pub struct Vm {
-    program: Vec<u8>,
-    regesters: Vec<u32>,
-    stack: Vec<u32>,
-    heap: Vec<u8>,
+    pub program: Vec<u8>,
+    pub regesters: Vec<u32>,
+    pub stack: Vec<u32>,
+    pub heap: Vec<u8>,
     pub pc: usize,
     pub running: bool,
 }
@@ -100,11 +101,13 @@ impl Vm {
             Opcode::Mul => self.opcode_3reg(Opcode::Mul)?,
             Opcode::Inc => self.opcode_1reg(Opcode::Inc)?,
             Opcode::Eq => self.opcode_3reg(Opcode::Eq)?,
-            Opcode::Jne => self.opcode_1reg_label(Opcode::Jne)?,
+            Opcode::Jne => self.opcode_2reg_label(Opcode::Jne)?,
             Opcode::Hult => self.opcode_noargs(Opcode::Hult)?,
             Opcode::PrintReg => self.opcode_1reg(Opcode::PrintReg)?,
+            Opcode::Call => self.opcode_label(Opcode::Call)?,
             Opcode::And => self.opcode_3reg(Opcode::And)?,
             Opcode::Or => self.opcode_3reg(Opcode::Or)?,
+            Opcode::Return => self.opcode_noargs(Opcode::Return)?,
         }
         Ok(())
     }
@@ -132,7 +135,26 @@ impl Vm {
             r#type: Type::Void,
             data: Data::NoArgs,
         }
-        .execute(self);
+        .execute(self)?;
+        Ok(())
+    }
+
+    fn opcode_label(&mut self, opcode: Opcode) -> Result<()> {
+        let r#type: Type = self.get_next_byte().try_into()?;
+
+        let address = u32::from_le_bytes([
+            self.get_next_byte(),
+            self.get_next_byte(),
+            self.get_next_byte(),
+            self.get_next_byte(),
+        ]);
+
+        Instruction {
+            opcode,
+            r#type,
+            data: Data::Label(Either::Right(address)),
+        }
+        .execute(self)?;
         Ok(())
     }
 
@@ -144,7 +166,7 @@ impl Vm {
             r#type,
             data: Data::Reg1(reg),
         }
-        .execute(self);
+        .execute(self)?;
         Ok(())
     }
 
@@ -157,7 +179,7 @@ impl Vm {
             r#type,
             data: Data::Reg2(reg1, reg2),
         }
-        .execute(self);
+        .execute(self)?;
         Ok(())
     }
 
@@ -171,7 +193,7 @@ impl Vm {
             r#type,
             data: Data::Reg3(reg1, reg2, reg3),
         }
-        .execute(self);
+        .execute(self)?;
         Ok(())
     }
 
@@ -232,10 +254,11 @@ impl Vm {
             r#type,
             data: Data::Imm(reg, Imm(data)),
         }
-        .execute(self);
+        .execute(self)?;
         Ok(())
     }
-    fn opcode_1reg_label(&mut self, opcode: Opcode) -> Result<()> {
+
+    fn opcode_2reg_label(&mut self, opcode: Opcode) -> Result<()> {
         let r#type: Type = self.get_next_byte().try_into()?;
         let lhs: Register = (self.get_next_byte(), Span::default()).try_into()?;
         let rhs: Register = (self.get_next_byte(), Span::default()).try_into()?;
@@ -248,15 +271,15 @@ impl Vm {
         Instruction {
             opcode,
             r#type,
-            data: Data::RegLabel(lhs, rhs, Either::Right(label)),
+            data: Data::Reg2Label(lhs, rhs, Either::Right(label)),
         }
-        .execute(self);
+        .execute(self)?;
         Ok(())
     }
 }
 
 impl Execute for Instruction {
-    fn execute(&mut self, vm: &mut Vm) {
+    fn execute(&mut self, vm: &mut Vm) -> Result<()> {
         match self.opcode {
             Opcode::Load => match &self.data {
                 Data::Imm(reg, Imm(value)) => {
@@ -275,6 +298,7 @@ impl Execute for Instruction {
                         ),
                         _ => unimplemented!("Unimplemented size: {}", size),
                     }
+                    Ok(())
                 }
                 _ => unimplemented!("Load with two registers not implemented"),
             },
@@ -290,6 +314,7 @@ impl Execute for Instruction {
                         Type::Void => todo!(),
                         _ => unimplemented!("Unimplemented type: {:?}", self.r#type),
                     }
+                    Ok(())
                 }
                 _ => unimplemented!("Store with two registers not implemented"),
             },
@@ -299,6 +324,7 @@ impl Execute for Instruction {
                     let current_heap_size = vm.heap.len();
                     vm.heap
                         .resize_with(current_heap_size + value, Default::default);
+                    Ok(())
                 }
                 _ => unreachable!("Aloc with two registers not implemented"),
             },
@@ -306,6 +332,7 @@ impl Execute for Instruction {
                 Data::Reg1(reg) => {
                     let value = *vm.get_regester(reg as u8);
                     vm.push_to_stack(value);
+                    Ok(())
                 }
                 _ => unreachable!("Push with two registers not implemented"),
             },
@@ -313,6 +340,7 @@ impl Execute for Instruction {
                 Data::Reg1(reg) => {
                     let value = vm.pop_from_stack();
                     vm.set_regester(reg as u8, value);
+                    Ok(())
                 }
                 _ => unreachable!("Push with two registers not implemented"),
             },
@@ -321,6 +349,7 @@ impl Execute for Instruction {
                     let lhs = vm.get_regester(reg_lhs as u8);
                     let rhs = vm.get_regester(reg_rhs as u8);
                     vm.set_regester(des as u8, lhs + rhs);
+                    Ok(())
                 }
                 _ => unreachable!(),
             },
@@ -329,6 +358,7 @@ impl Execute for Instruction {
                     let lhs = vm.get_regester(reg_lhs as u8);
                     let rhs = vm.get_regester(reg_rhs as u8);
                     vm.set_regester(des as u8, lhs - rhs);
+                    Ok(())
                 }
                 _ => unreachable!(),
             },
@@ -337,6 +367,7 @@ impl Execute for Instruction {
                     let lhs = vm.get_regester(reg_lhs as u8);
                     let rhs = vm.get_regester(reg_rhs as u8);
                     vm.set_regester(des as u8, lhs / rhs);
+                    Ok(())
                 }
                 _ => unreachable!(),
             },
@@ -345,6 +376,7 @@ impl Execute for Instruction {
                     let lhs = vm.get_regester(reg_lhs as u8);
                     let rhs = vm.get_regester(reg_rhs as u8);
                     vm.set_regester(des as u8, lhs * rhs);
+                    Ok(())
                 }
                 _ => unreachable!(),
             },
@@ -352,17 +384,19 @@ impl Execute for Instruction {
                 Data::Reg1(reg) => {
                     let value = vm.get_regester(reg as u8);
                     vm.set_regester(reg as u8, value + 1);
+                    Ok(())
                 }
                 _ => unreachable!(),
             },
             Opcode::Jne => match self.data {
-                Data::RegLabel(lhs, rhs, Either::Right(label)) => {
+                Data::Reg2Label(lhs, rhs, Either::Right(label)) => {
                     let lhs_value = vm.get_regester(lhs as u8);
                     let rhs_value = vm.get_regester(rhs as u8);
                     if lhs_value == rhs_value {
-                        return;
+                        return Ok(());
                     }
                     vm.pc = label as usize;
+                    Ok(())
                 }
                 _ => unreachable!(),
             },
@@ -371,14 +405,28 @@ impl Execute for Instruction {
                     let lhs = vm.get_regester(reg_lhs as u8);
                     let rhs = vm.get_regester(reg_rhs as u8);
                     vm.set_regester(des as u8, (lhs == rhs) as u32);
+                    Ok(())
                 }
                 _ => unreachable!(),
             },
-            Opcode::Hult => vm.running = false,
+            Opcode::Hult => {
+                vm.running = false;
+                Ok(())
+            }
             Opcode::PrintReg => match self.data {
                 Data::Reg1(reg) => {
                     let value = vm.get_regester(reg as u8);
                     println!("{}", value);
+                    Ok(())
+                }
+                _ => unreachable!(),
+            },
+            Opcode::Call => match self.data {
+                Data::Label(Either::Right(value)) => {
+                    // Prologue
+                    vm.stack.push(vm.pc as u32);
+                    vm.pc = value as usize;
+                    Ok(())
                 }
                 _ => unreachable!(),
             },
@@ -387,6 +435,7 @@ impl Execute for Instruction {
                     let lhs = vm.get_regester(reg_lhs as u8);
                     let rhs = vm.get_regester(reg_rhs as u8);
                     vm.set_regester(des as u8, lhs & rhs);
+                    Ok(())
                 }
                 _ => unreachable!(),
             },
@@ -395,9 +444,18 @@ impl Execute for Instruction {
                     let lhs = vm.get_regester(reg_lhs as u8);
                     let rhs = vm.get_regester(reg_rhs as u8);
                     vm.set_regester(des as u8, lhs | rhs);
+                    Ok(())
                 }
                 _ => unreachable!(),
             },
+            Opcode::Return => {
+                // Epilogue
+                let Some(value) = vm.stack.pop() else {
+                    bail!(BitBoxError::StackUnderflow);
+                };
+                vm.pc = value as usize;
+                Ok(())
+            }
         }
     }
 }

@@ -232,6 +232,22 @@ impl Parser {
         }
     }
 
+    fn parse_reg_0_label(&mut self, token: Token, opcode: Opcode) -> Result<()> {
+        let label = self.parse_label()?;
+        let end_span = self
+            .consume(&[TokenKind::Delimiter], ParserError::ExpectedDelimiter)?
+            .span;
+        let span = Span::from((token.span, end_span));
+        let instruction = Instruction {
+            opcode,
+            r#type: Type::Void,
+            data: Data::Label(Either::Left(label)),
+        };
+        let text = self.create_text(instruction, span);
+        self.push_text(text);
+        Ok(())
+    }
+
     fn parse_reg_imm(&mut self, token: Token, opcode: Opcode) -> Result<()> {
         let r#type = self.parse_type()?;
         let reg = self.parse_reg()?;
@@ -332,7 +348,7 @@ impl Parser {
         let instruction = Instruction {
             opcode,
             r#type,
-            data: Data::RegLabel(lhs, rhs, Either::Left(label)),
+            data: Data::Reg2Label(lhs, rhs, Either::Left(label)),
         };
         let text = self.create_text(instruction, span);
         self.push_text(text);
@@ -406,8 +422,10 @@ impl Parser {
                 TokenKind::KeywordJne => self.parse_reg_2_label(token, Opcode::Jne),
                 TokenKind::KeywordHult => self.parse_no_args(token, Opcode::Hult),
                 TokenKind::KeywordPrintReg => self.parse_reg_1(token, Opcode::PrintReg),
+                TokenKind::KeywordCall => self.parse_reg_0_label(token, Opcode::Call),
                 TokenKind::KeywordAnd => self.parse_reg_3(token, Opcode::And),
                 TokenKind::KeywordOr => self.parse_reg_3(token, Opcode::Or),
+                TokenKind::KeywordReturn => self.parse_no_args(token, Opcode::Return),
                 TokenKind::Identifier(_) if matches!(self.peek_kind(), Some(&TokenKind::Colon)) => {
                     self.label = Some(token);
                     let _ = self.consume(&[TokenKind::Colon], ParserError::ExpectedColon)?;

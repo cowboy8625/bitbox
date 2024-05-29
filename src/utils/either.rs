@@ -5,7 +5,7 @@ pub enum Either<L, R> {
 }
 
 impl<L, R> Either<L, R> {
-    pub fn map_left<F, T>(self, f: F) -> Either<T, R>
+    pub fn _map_left<F, T>(self, f: F) -> Either<T, R>
     where
         F: FnOnce(L) -> T,
     {
@@ -15,7 +15,7 @@ impl<L, R> Either<L, R> {
         }
     }
 
-    pub fn map_right<F, T>(self, f: F) -> Either<L, T>
+    pub fn _map_right<F, T>(self, f: F) -> Either<L, T>
     where
         F: FnOnce(R) -> T,
     {
