@@ -24,41 +24,43 @@ Instructions consist of a 3 main parts.
   - **Arg 3**: this is three bytes
   - **Arg 1 with Immediate Value**: this is one to as many bytes as needed. The type will dictate the size.
 
-|instruction |type| arg1 | arg2 | arg3 |
-|:-----------|:--:|:----:|:----:|:----:|
-|✅  load    |    | reg  |     imm     |
-|✅  store   |    | reg  | reg  |      |
-|✅  push    |    | reg  |     N/A     |
-|✅  pop     |    | reg  |     N/A     |
-|✅  aloc    |    | reg  |     N/A     |
-|✅  add     |    | reg  | reg  | reg  |
-|✅  sub     |    | reg  | reg  | reg  |
-|✅  div     |    | reg  | reg  | reg  |
-|✅  mul     |    | reg  | reg  | reg  |
-|✅  eq      |    | reg  | reg  | N/A  |
-|🟥  neq     |    | reg  | reg  | N/A  |
-|🟥  gt      |    | reg  | reg  | N/A  |
-|🟥  geq     |    | reg  | reg  | N/A  |
-|🟥  lt      |    | reg  | reg  | N/A  |
-|🟥  leq     |    | reg  | reg  | N/A  |
-|🟥  setm    |    | reg  | reg  | N/A  |
-|✅  inc     |    | reg  |     N/A     |
-|🟥  dec     |    | reg  |     N/A     |
-|✅  printreg|    | reg  |     N/A     |
-|🟥  jmp     |    |      label name    |
-|🟥  jeq     |    |      label name    |
-|✅  jne     |    |      label name    |
-|✅  hult    |    |        N/A         |
-|🟥  nop     |    |        N/A         |
-|🟥  ige     |    |        N/A         |
-|🟥  not     |    | reg  |     N/A     |
-|✅  and     |    | reg  | reg  | reg  |
-|✅  or      |    | reg  | reg  | reg  |
-|🟥  xor     |    | reg  | reg  | reg  |
-|🟥  shl     |    | reg  | reg  | reg  |
-|🟥  shr     |    | reg  | reg  | reg  |
-|🟥  sar     |    | reg  | reg  | reg  |
-|🟥  rol     |    | reg  | reg  | reg  |
-|🟥  ror     |    | reg  | reg  | reg  |
-|✅  call    |    |    label/imm       |
-|✅  return  |    |         N/A        |
+**Note**: opcode numbers may not be correct as they can change as we add more instructions
+
+|instruction |opcode| type |                 data         |
+|:-----------|:----:|:----:|:----------------------------:|
+|✅  load    | 0    |      | Reg,Imm|
+|✅  store   | 1    |      | Reg,Reg|
+|✅  push    | 2    |      | Reg|
+|✅  pop     | 3    |      | Reg|
+|✅  aloc    | 4    |      | Reg|
+|✅  add     | 5    |      | Reg,Reg,Reg|
+|✅  sub     | 6    |      | Reg,Reg,Reg|
+|✅  div     | 7    |      | Reg,Reg,Reg|
+|✅  mul     | 8    |      | Reg,Reg,Reg|
+|✅  eq      | 9    |      | Reg,Reg|
+|🟥  neq     | 10   |      | Reg,Reg|
+|🟥  gt      | 11   |      | Reg,Reg|
+|🟥  geq     | 12   |      | Reg,Reg|
+|🟥  lt      | 13   |      | Reg,Reg|
+|🟥  leq     | 14   |      | Reg,Reg|
+|🟥  setm    | 15   |      | Reg,Reg|
+|✅  inc     | 16   |      | Reg|
+|🟥  dec     | 17   |      | Reg|
+|✅  printreg| 18   |      | Reg|
+|🟥  jmp     | 19   |      | Label|
+|🟥  jeq     | 20   |      | Label|
+|✅  jne     | 21   |      | Label|
+|✅  hult    | 22   |      ||
+|🟥  nop     | 23   |      ||
+|🟥  ige     | 24   |      ||
+|🟥  not     | 25   |      | Reg|
+|✅  and     | 26   |      | Reg,Reg,Reg|
+|✅  or      | 27   |      | Reg,Reg,Reg|
+|🟥  xor     | 28   |      | Reg,Reg,Reg|
+|🟥  shl     | 29   |      | Reg,Reg,Reg|
+|🟥  shr     | 30   |      | Reg,Reg,Reg|
+|🟥  sar     | 31   |      | Reg,Reg,Reg|
+|🟥  rol     | 32   |      | Reg,Reg,Reg|
+|🟥  ror     | 33   |      | Reg,Reg,Reg|
+|✅  call    | 34   |      | Label|
+|✅  return  | 35   |      ||
