@@ -108,6 +108,7 @@ impl Vm {
             Opcode::And => self.opcode_3reg(Opcode::And)?,
             Opcode::Or => self.opcode_3reg(Opcode::Or)?,
             Opcode::Return => self.opcode_noargs(Opcode::Return)?,
+            Opcode::Syscall => self.opcode_noargs(Opcode::Syscall)?,
         }
         Ok(())
     }
@@ -116,8 +117,6 @@ impl Vm {
         while self.running {
             self.execute()?;
         }
-        println!("stack: {:?}", self.stack);
-        println!("regesters: {:?}", self.regesters);
         Ok(())
     }
 }
@@ -130,6 +129,9 @@ impl Vm {
     }
 
     fn opcode_noargs(&mut self, opcode: Opcode) -> Result<()> {
+        let Type::Void: Type = self.get_next_byte().try_into()? else {
+            panic!("Error: expected void");
+        };
         Instruction {
             opcode,
             r#type: Type::Void,
@@ -284,7 +286,6 @@ impl Execute for Instruction {
             Opcode::Load => match &self.data {
                 Data::Imm(reg, Imm(value)) => {
                     let size = self.r#type.bytes();
-                    // debug_assert_eq!(value.len(), size as usize);
                     match size {
                         8 => vm.set_regester(*reg as u8, value[0] as u32),
                         16 => vm.set_regester(
@@ -296,11 +297,13 @@ impl Execute for Instruction {
                             *reg as u8,
                             u32::from_le_bytes(value[0..4].try_into().expect("Not enough bytes")),
                         ),
-                        _ => unimplemented!("Unimplemented size: {}", size),
+                        _ => unimplemented!("Error for Load instruction"),
                     }
                     Ok(())
                 }
-                _ => unimplemented!("Load with two registers not implemented"),
+                _ => unimplemented!(
+                    "Error for Load instruction: Load with two registers not implemented"
+                ),
             },
             Opcode::Store => match &self.data {
                 Data::Reg2(reg1, reg2) => {
@@ -312,11 +315,13 @@ impl Execute for Instruction {
                         Type::U(32) => vm.set_heap_u32(des, value),
                         Type::U(64) => vm.set_heap_u64(des, value as u64),
                         Type::Void => todo!(),
-                        _ => unimplemented!("Unimplemented type: {:?}", self.r#type),
+                        _ => unimplemented!("Error for Store instruction"),
                     }
                     Ok(())
                 }
-                _ => unimplemented!("Store with two registers not implemented"),
+                _ => unimplemented!(
+                    "Error for Store instruction: Store with two registers not implemented"
+                ),
             },
             Opcode::Aloc => match self.data {
                 Data::Reg1(reg) => {
@@ -326,7 +331,7 @@ impl Execute for Instruction {
                         .resize_with(current_heap_size + value, Default::default);
                     Ok(())
                 }
-                _ => unreachable!("Aloc with two registers not implemented"),
+                _ => unreachable!("Error for Aloc instruction"),
             },
             Opcode::Push => match self.data {
                 Data::Reg1(reg) => {
@@ -334,7 +339,7 @@ impl Execute for Instruction {
                     vm.push_to_stack(value);
                     Ok(())
                 }
-                _ => unreachable!("Push with two registers not implemented"),
+                _ => unreachable!("Error for Push instruction"),
             },
             Opcode::Pop => match self.data {
                 Data::Reg1(reg) => {
@@ -342,7 +347,7 @@ impl Execute for Instruction {
                     vm.set_regester(reg as u8, value);
                     Ok(())
                 }
-                _ => unreachable!("Push with two registers not implemented"),
+                _ => unreachable!("Error for Pop instruction"),
             },
             Opcode::Add => match self.data {
                 Data::Reg3(des, reg_lhs, reg_rhs) => {
@@ -351,7 +356,7 @@ impl Execute for Instruction {
                     vm.set_regester(des as u8, lhs + rhs);
                     Ok(())
                 }
-                _ => unreachable!(),
+                _ => unreachable!("Error for Add instruction"),
             },
             Opcode::Sub => match self.data {
                 Data::Reg3(des, reg_lhs, reg_rhs) => {
@@ -360,7 +365,7 @@ impl Execute for Instruction {
                     vm.set_regester(des as u8, lhs - rhs);
                     Ok(())
                 }
-                _ => unreachable!(),
+                _ => unreachable!("Error for Sub instruction"),
             },
             Opcode::Div => match self.data {
                 Data::Reg3(des, reg_lhs, reg_rhs) => {
@@ -369,7 +374,7 @@ impl Execute for Instruction {
                     vm.set_regester(des as u8, lhs / rhs);
                     Ok(())
                 }
-                _ => unreachable!(),
+                _ => unreachable!("Error for Div instruction"),
             },
             Opcode::Mul => match self.data {
                 Data::Reg3(des, reg_lhs, reg_rhs) => {
@@ -378,7 +383,7 @@ impl Execute for Instruction {
                     vm.set_regester(des as u8, lhs * rhs);
                     Ok(())
                 }
-                _ => unreachable!(),
+                _ => unreachable!("Error for Mul instruction"),
             },
             Opcode::Inc => match self.data {
                 Data::Reg1(reg) => {
@@ -386,7 +391,7 @@ impl Execute for Instruction {
                     vm.set_regester(reg as u8, value + 1);
                     Ok(())
                 }
-                _ => unreachable!(),
+                _ => unreachable!("Error for Inc instruction"),
             },
             Opcode::Jne => match self.data {
                 Data::Reg2Label(lhs, rhs, Either::Right(label)) => {
@@ -398,7 +403,7 @@ impl Execute for Instruction {
                     vm.pc = label as usize;
                     Ok(())
                 }
-                _ => unreachable!(),
+                _ => unreachable!("Error for Jne instruction"),
             },
             Opcode::Eq => match self.data {
                 Data::Reg3(des, reg_lhs, reg_rhs) => {
@@ -407,7 +412,7 @@ impl Execute for Instruction {
                     vm.set_regester(des as u8, (lhs == rhs) as u32);
                     Ok(())
                 }
-                _ => unreachable!(),
+                _ => unreachable!("Error for Eq instruction"),
             },
             Opcode::Hult => {
                 vm.running = false;
@@ -419,7 +424,7 @@ impl Execute for Instruction {
                     println!("{}", value);
                     Ok(())
                 }
-                _ => unreachable!(),
+                _ => unreachable!("Error for PrintReg instruction"),
             },
             Opcode::Call => match self.data {
                 Data::Label(Either::Right(value)) => {
@@ -428,7 +433,7 @@ impl Execute for Instruction {
                     vm.pc = value as usize;
                     Ok(())
                 }
-                _ => unreachable!(),
+                _ => unreachable!("Error for Call instruction"),
             },
             Opcode::And => match self.data {
                 Data::Reg3(des, reg_lhs, reg_rhs) => {
@@ -437,7 +442,7 @@ impl Execute for Instruction {
                     vm.set_regester(des as u8, lhs & rhs);
                     Ok(())
                 }
-                _ => unreachable!(),
+                _ => unreachable!("Error for And instruction"),
             },
             Opcode::Or => match self.data {
                 Data::Reg3(des, reg_lhs, reg_rhs) => {
@@ -446,7 +451,7 @@ impl Execute for Instruction {
                     vm.set_regester(des as u8, lhs | rhs);
                     Ok(())
                 }
-                _ => unreachable!(),
+                _ => unreachable!("Error for Or instruction"),
             },
             Opcode::Return => {
                 // Epilogue
@@ -456,6 +461,25 @@ impl Execute for Instruction {
                 vm.pc = value as usize;
                 Ok(())
             }
+            Opcode::Syscall => match vm.get_regester(Register::R0 as u8) {
+                // Write
+                0 => {
+                    use std::io::Write;
+                    let ptr = *vm.get_regester(Register::R1 as u8) as usize;
+                    let length = *vm.get_regester(Register::R2 as u8) as usize;
+                    let _static = if *vm.get_regester(Register::R3 as u8) == 1 {
+                        true
+                    } else {
+                        false
+                    };
+
+                    let data = &vm.heap[ptr..(ptr + length)];
+                    print!("{}", String::from_utf8_lossy(data));
+                    std::io::stdout().flush()?;
+                    Ok(())
+                }
+                _ => unreachable!("Error for Syscall instruction"),
+            },
         }
     }
 }

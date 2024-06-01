@@ -114,6 +114,7 @@ pub enum Opcode {
     And,
     Or,
     Return,
+    Syscall,
 }
 
 impl TryFrom<u8> for Opcode {
@@ -139,6 +140,7 @@ impl TryFrom<u8> for Opcode {
             15 => Ok(Opcode::And),
             16 => Ok(Opcode::Or),
             17 => Ok(Opcode::Return),
+            18 => Ok(Opcode::Syscall),
             _ => Err(BitBoxError::InvalidOpcode(value)),
         }
     }

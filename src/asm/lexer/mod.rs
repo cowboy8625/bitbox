@@ -51,6 +51,7 @@ pub enum TokenKind {
     KeywordAnd,
     KeywordOr,
     KeywordReturn,
+    KeywordSyscall,
     Number(u32),
     Identifier(String),
     Colon,
@@ -213,6 +214,7 @@ impl<'a> Lexer<'a> {
             "and" => TokenKind::KeywordAnd,
             "or" => TokenKind::KeywordOr,
             "return" => TokenKind::KeywordReturn,
+            "syscall" => TokenKind::KeywordSyscall,
             _ => TokenKind::Identifier(identifier),
         };
         let span = self.span();

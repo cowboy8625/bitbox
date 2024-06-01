@@ -426,6 +426,7 @@ impl Parser {
                 TokenKind::KeywordAnd => self.parse_reg_3(token, Opcode::And),
                 TokenKind::KeywordOr => self.parse_reg_3(token, Opcode::Or),
                 TokenKind::KeywordReturn => self.parse_no_args(token, Opcode::Return),
+                TokenKind::KeywordSyscall => self.parse_no_args(token, Opcode::Syscall),
                 TokenKind::Identifier(_) if matches!(self.peek_kind(), Some(&TokenKind::Colon)) => {
                     self.label = Some(token);
                     let _ = self.consume(&[TokenKind::Colon], ParserError::ExpectedColon)?;
@@ -433,7 +434,7 @@ impl Parser {
                 }
                 TokenKind::Period => self.parse_directive(token),
                 TokenKind::Delimiter => continue,
-                _ => todo!("report error {:?}", kind),
+                _ => todo!("report error {:?} at {:?}", kind, token.span),
             };
             let Err(e) = maybe_error else {
                 continue;

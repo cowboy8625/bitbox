@@ -30,37 +30,45 @@ Instructions consist of a 3 main parts.
 |:-----------|:----:|:----:|:----------------------------:|
 |✅  load    | 0    |      | Reg,Imm|
 |✅  store   | 1    |      | Reg,Reg|
-|✅  push    | 2    |      | Reg|
-|✅  pop     | 3    |      | Reg|
-|✅  aloc    | 4    |      | Reg|
+|✅  aloc    | 2    |      | Reg|
+|✅  push    | 3    |      | Reg|
+|✅  pop     | 4    |      | Reg|
 |✅  add     | 5    |      | Reg,Reg,Reg|
 |✅  sub     | 6    |      | Reg,Reg,Reg|
 |✅  div     | 7    |      | Reg,Reg,Reg|
 |✅  mul     | 8    |      | Reg,Reg,Reg|
-|✅  eq      | 9    |      | Reg,Reg|
-|🟥  neq     | 10   |      | Reg,Reg|
-|🟥  gt      | 11   |      | Reg,Reg|
-|🟥  geq     | 12   |      | Reg,Reg|
-|🟥  lt      | 13   |      | Reg,Reg|
-|🟥  leq     | 14   |      | Reg,Reg|
-|🟥  setm    | 15   |      | Reg,Reg|
-|✅  inc     | 16   |      | Reg|
-|🟥  dec     | 17   |      | Reg|
-|✅  printreg| 18   |      | Reg|
-|🟥  jmp     | 19   |      | Label|
-|🟥  jeq     | 20   |      | Label|
-|✅  jne     | 21   |      | Label|
-|✅  hult    | 22   |      ||
-|🟥  nop     | 23   |      ||
-|🟥  ige     | 24   |      ||
-|🟥  not     | 25   |      | Reg|
-|✅  and     | 26   |      | Reg,Reg,Reg|
-|✅  or      | 27   |      | Reg,Reg,Reg|
-|🟥  xor     | 28   |      | Reg,Reg,Reg|
-|🟥  shl     | 29   |      | Reg,Reg,Reg|
-|🟥  shr     | 30   |      | Reg,Reg,Reg|
-|🟥  sar     | 31   |      | Reg,Reg,Reg|
-|🟥  rol     | 32   |      | Reg,Reg,Reg|
-|🟥  ror     | 33   |      | Reg,Reg,Reg|
-|✅  call    | 34   |      | Label|
-|✅  return  | 35   |      ||
+|✅  inc     | 9    |      | Reg|
+|✅  eq      | 10   |      | Reg,Reg|
+|✅  jne     | 11   |      | Label|
+|✅  hult    | 12   |      ||
+|✅  printreg| 13   |      | Reg|
+|✅  call    | 14   |      | Label|
+|✅  and     | 15   |      | Reg,Reg,Reg|
+|✅  or      | 16   |      | Reg,Reg,Reg|
+|✅  return  | 17   |      ||
+|✅  syscall | 18   |      ||
+|🟥  jmp     | N/A  |      | Label|
+|🟥  jeq     | N/A  |      | Label|
+|🟥  nop     | N/A  |      ||
+|🟥  ige     | N/A  |      ||
+|🟥  not     | N/A  |      | Reg|
+|🟥  xor     | N/A  |      | Reg,Reg,Reg|
+|🟥  shl     | N/A  |      | Reg,Reg,Reg|
+|🟥  shr     | N/A  |      | Reg,Reg,Reg|
+|🟥  sar     | N/A  |      | Reg,Reg,Reg|
+|🟥  rol     | N/A  |      | Reg,Reg,Reg|
+|🟥  ror     | N/A  |      | Reg,Reg,Reg|
+|🟥  neq     | N/A  |      | Reg,Reg|
+|🟥  gt      | N/A  |      | Reg,Reg|
+|🟥  geq     | N/A  |      | Reg,Reg|
+|🟥  lt      | N/A  |      | Reg,Reg|
+|🟥  leq     | N/A  |      | Reg,Reg|
+|🟥  dec     | N/A  |      | Reg|
+
+## Syscall
+
+Register 0 is used for the syscall number, register 1-4 are used for arguments.
+
+| name | reg 0 |      reg 1    |     reg 2     | reg 3 | reg 4 |
+|:-----|:-----:|:-------------:|:-------------:|:-----:|:-----:|
+|WRITE | 0     | ptr to string | string length | N/A   | N/A   |
