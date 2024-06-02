@@ -190,6 +190,18 @@ impl Type {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Imm(pub Vec<u8>);
+impl From<u8> for Imm {
+    fn from(value: u8) -> Self {
+        Self(vec![value as u8])
+    }
+}
+
+impl From<u16> for Imm {
+    fn from(value: u16) -> Self {
+        Self(vec![value as u8, (value >> 8) as u8])
+    }
+}
+
 impl From<u32> for Imm {
     fn from(value: u32) -> Self {
         Self(vec![
@@ -197,6 +209,21 @@ impl From<u32> for Imm {
             (value >> 8) as u8,
             (value >> 16) as u8,
             (value >> 24) as u8,
+        ])
+    }
+}
+
+impl From<u64> for Imm {
+    fn from(value: u64) -> Self {
+        Self(vec![
+            value as u8,
+            (value >> 8) as u8,
+            (value >> 16) as u8,
+            (value >> 24) as u8,
+            (value >> 32) as u8,
+            (value >> 40) as u8,
+            (value >> 48) as u8,
+            (value >> 56) as u8,
         ])
     }
 }

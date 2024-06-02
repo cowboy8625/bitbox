@@ -8,8 +8,8 @@ use anyhow::{bail, Result};
 
 pub struct Vm {
     pub program: Vec<u8>,
-    pub regesters: Vec<u32>,
-    pub stack: Vec<u32>,
+    pub regesters: Vec<u64>,
+    pub stack: Vec<u64>,
     pub heap: Vec<u8>,
     pub pc: usize,
     pub running: bool,
@@ -41,33 +41,33 @@ impl Vm {
         })
     }
 
-    pub fn get_regester(&self, reg: u8) -> &u32 {
+    pub fn get_regester(&self, reg: u8) -> &u64 {
         &self.regesters[reg as usize]
     }
 
-    pub fn set_regester(&mut self, reg: u8, value: u32) {
+    pub fn set_regester(&mut self, reg: u8, value: u64) {
         self.regesters[reg as usize] = value;
     }
 
-    pub fn push_to_stack(&mut self, value: u32) {
+    pub fn push_to_stack(&mut self, value: u64) {
         self.stack.push(value);
     }
 
-    pub fn pop_from_stack(&mut self) -> u32 {
+    pub fn pop_from_stack(&mut self) -> u64 {
         self.stack.pop().unwrap()
     }
 
-    pub fn set_heap_u8(&mut self, dest: u32, value: u8) {
+    pub fn set_heap_u8(&mut self, dest: u64, value: u8) {
         self.heap[dest as usize] = value
     }
 
-    pub fn set_heap_u16(&mut self, dest: u32, value: u16) {
+    pub fn set_heap_u16(&mut self, dest: u64, value: u16) {
         let bytes = value.to_le_bytes();
         self.heap[dest as usize] = bytes[0];
         self.heap[dest as usize + 1] = bytes[1];
     }
 
-    pub fn set_heap_u32(&mut self, dest: u32, value: u32) {
+    pub fn set_heap_u32(&mut self, dest: u64, value: u32) {
         let bytes = value.to_le_bytes();
         self.heap[dest as usize] = bytes[0];
         self.heap[dest as usize + 1] = bytes[1];
@@ -75,7 +75,7 @@ impl Vm {
         self.heap[dest as usize + 3] = bytes[3];
     }
 
-    pub fn set_heap_u64(&mut self, dest: u32, value: u64) {
+    pub fn set_heap_u64(&mut self, dest: u64, value: u64) {
         let bytes = value.to_le_bytes();
         self.heap[dest as usize] = bytes[0];
         self.heap[dest as usize + 1] = bytes[1];
@@ -287,17 +287,27 @@ impl Execute for Instruction {
                 Data::Imm(reg, Imm(value)) => {
                     let size = self.r#type.bytes();
                     match size {
-                        8 => vm.set_regester(*reg as u8, value[0] as u32),
+                        8 => vm.set_regester(*reg as u8, value[0] as u64),
                         16 => vm.set_regester(
                             *reg as u8,
                             u16::from_le_bytes(value[0..2].try_into().expect("Not enough bytes"))
-                                as u32,
+                                as u64,
                         ),
                         32 => vm.set_regester(
                             *reg as u8,
-                            u32::from_le_bytes(value[0..4].try_into().expect("Not enough bytes")),
+                            u32::from_le_bytes(value[0..4].try_into().expect("Not enough bytes"))
+                                as u64,
                         ),
-                        _ => unimplemented!("Error for Load instruction"),
+                        64 => vm.set_regester(
+                            *reg as u8,
+                            u64::from_le_bytes(value[0..8].try_into().expect("Not enough bytes")),
+                        ),
+                        _ => unimplemented!(
+                            "Error for Load instruction {:?},\n{:?},\n{:#?}",
+                            size,
+                            vm.pc,
+                            vm.program
+                        ),
                     }
                     Ok(())
                 }
@@ -312,8 +322,8 @@ impl Execute for Instruction {
                     match self.r#type {
                         Type::U(8) => vm.set_heap_u8(des, value as u8),
                         Type::U(16) => vm.set_heap_u16(des, value as u16),
-                        Type::U(32) => vm.set_heap_u32(des, value),
-                        Type::U(64) => vm.set_heap_u64(des, value as u64),
+                        Type::U(32) => vm.set_heap_u32(des, value as u32),
+                        Type::U(64) => vm.set_heap_u64(des, value),
                         Type::Void => todo!(),
                         _ => unimplemented!("Error for Store instruction"),
                     }
@@ -409,7 +419,7 @@ impl Execute for Instruction {
                 Data::Reg3(des, reg_lhs, reg_rhs) => {
                     let lhs = vm.get_regester(reg_lhs as u8);
                     let rhs = vm.get_regester(reg_rhs as u8);
-                    vm.set_regester(des as u8, (lhs == rhs) as u32);
+                    vm.set_regester(des as u8, (lhs == rhs) as u64);
                     Ok(())
                 }
                 _ => unreachable!("Error for Eq instruction"),
@@ -429,7 +439,7 @@ impl Execute for Instruction {
             Opcode::Call => match self.data {
                 Data::Label(Either::Right(value)) => {
                     // Prologue
-                    vm.stack.push(vm.pc as u32);
+                    vm.stack.push(vm.pc as u64);
                     vm.pc = value as usize;
                     Ok(())
                 }

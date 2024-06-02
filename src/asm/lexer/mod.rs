@@ -52,7 +52,7 @@ pub enum TokenKind {
     KeywordOr,
     KeywordReturn,
     KeywordSyscall,
-    Number(u32),
+    Number(u64),
     Identifier(String),
     Colon,
     Comma,
@@ -168,7 +168,7 @@ impl<'a> Lexer<'a> {
         }
         let span = self.span();
         self.add_token_with_span(
-            TokenKind::Number(u32::from_str_radix(&number, 16).expect("invalid number")),
+            TokenKind::Number(u64::from_str_radix(&number, 16).expect("invalid number")),
             span,
         );
     }
@@ -184,7 +184,7 @@ impl<'a> Lexer<'a> {
         }
         let span = self.span();
         self.add_token_with_span(
-            TokenKind::Number(u32::from_str_radix(&number, 2).expect("invalid number")),
+            TokenKind::Number(u64::from_str_radix(&number, 2).expect("invalid number")),
             span,
         );
     }

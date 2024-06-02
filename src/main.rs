@@ -1,3 +1,4 @@
+// TODO: swapping from u32 to u64
 mod asm;
 mod error;
 mod instructions;
@@ -10,41 +11,19 @@ use anyhow::Result;
 fn main() -> Result<()> {
     let src = r#".entry main
 
+.entry main
 main:
-    load[u32] %0 6
-    aloc[u32] %0
-
-    load[u32] %0 0   ; pointer to string
-
-    load[u8] %1 0x68 ; H
-    store[u8] %0 %1
-    inc[u8] %0
-
-    load[u8] %1 0x65 ; e
-    store[u8] %0 %1
-    inc[u8] %0
-
-    load[u8] %1 0x6c ; l
-    store[u8] %0 %1
-    inc[u8] %0
-
-    load[u8] %1 0x6c ; l
-    store[u8] %0 %1
-    inc[u8] %0
-
-    load[u8] %1 0x6f ; o
-    store[u8] %0 %1
-    inc[u8] %0
-
-    load[u8] %1 0xa  ; \n
-    store[u8] %0 %1
-
-    load[u8] %0 0 ; syscall write
-    load[u8] %1 0 ; pointer to string
-    load[u8] %2 6 ; length of string
-    load[u8] %3 0 ; static string
-    syscall
-
+    load[u64] %0  1 ; a = 1
+    load[u64] %1  1 ; b = 1
+    load[u64] %2 93 ; c = 46 (the number of iterations)
+    load[u64] %3  2 ; d = 2 (to start counting from the third Fibonacci number)
+loop:
+    push[u64] %1    ; push b to stack
+    add[u64] %1 %0 %1 ; b = a + b
+    pop[u64] %0     ; a = old b (from stack)
+    inc[u64] %3     ; d++
+    jne %3 %2 loop  ; if d != c, jump to loop
+    printreg[u64] %1 ; print b (the last computed Fibonacci number)
     hult
     "#;
     let program = asm::assemble(src)?;

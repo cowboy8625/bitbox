@@ -220,12 +220,10 @@ impl Parser {
                 (value >> 8) as u8,
                 (value >> 16) as u8,
                 (value >> 24) as u8,
-                // TODO: This can never be 64 bits unless we can change the TokenKind::Number to
-                // hold a u64 or more
-                // (value >> 32) as u8,
-                // (value >> 40) as u8,
-                // (value >> 48) as u8,
-                // (value >> 56) as u8,
+                (value >> 32) as u8,
+                (value >> 40) as u8,
+                (value >> 48) as u8,
+                (value >> 56) as u8,
             ]),
             Type::Void => bail!(ParserError::InvalidImmType(token.kind, token.span)),
             _ => unimplemented!("{:?} is not implemented", t),
