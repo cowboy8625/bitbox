@@ -42,6 +42,16 @@ vm_test!(
 );
 
 vm_test!(
+    copy_reg,
+    r#"
+        load[u8] %0 100
+        copy[u8] %1 %0
+    "#,
+    (Register::R0, 100),
+    (Register::R1, 100),
+);
+
+vm_test!(
     load_imm_hex,
     r#"
         load[u8] %0 0x6_4
@@ -141,6 +151,18 @@ vm_test!(
     "#,
     (Register::R0, 3),
     (Register::R1, 2),
+);
+
+vm_test!(
+    shift_right,
+    r#"
+        load[u8] %0 2
+        load[u8] %1 1
+        shr[u8] %2 %0 %1
+    "#,
+    (Register::R0, 2),
+    (Register::R1, 1),
+    (Register::R2, 1),
 );
 
 vm_test!(

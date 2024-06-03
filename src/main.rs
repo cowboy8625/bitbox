@@ -9,28 +9,34 @@ use anyhow::Result;
 // TODO: DATA section set string
 
 fn main() -> Result<()> {
-    let src = r#".entry main
-
+    let args = std::env::args().collect::<Vec<_>>();
+    let src = r#"
 .entry main
 main:
-    load[u64] %0  1 ; a = 1
-    load[u64] %1  1 ; b = 1
-    load[u64] %2 93 ; c = 46 (the number of iterations)
-    load[u64] %3  2 ; d = 2 (to start counting from the third Fibonacci number)
-loop:
-    push[u64] %1    ; push b to stack
-    add[u64] %1 %0 %1 ; b = a + b
-    pop[u64] %0     ; a = old b (from stack)
-    inc[u64] %3     ; d++
-    jne %3 %2 loop  ; if d != c, jump to loop
-    printreg[u64] %1 ; print b (the last computed Fibonacci number)
+    copy[u64] %31 %0
+
+    ; get the ptr to string and length
+    pop[u64] %5
+
+    ; get ptr
+    load[u64] %1 0b1111_1111_1111_1111_1111_1111_1111_1111
+    and[u64] %1 %1 %5
+
+    ; get length
+    load[u64] %6 32
+    shr[u64] %2 %5 %6 ; shift right by 32 bits
+
+    ; write first arg
+    load[u8] %0 0
+    ; %1 ptr
+    ; %2 length
+    load[u8] %3 0
+    syscall
+
     hult
     "#;
     let program = asm::assemble(src)?;
-    let mut vm = vm::Vm::new(program)?;
+    let mut vm = vm::Vm::new(program)?.with_args(args);
     vm.run()?;
-    // println!("stack: {:?}", vm.stack);
-    // println!("regesters: {:?}", vm.regesters);
-    // println!("heap: {:?}", vm.heap);
     Ok(())
 }

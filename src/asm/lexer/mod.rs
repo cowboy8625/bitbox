@@ -35,6 +35,7 @@ impl From<(Span, Span)> for Span {
 pub enum TokenKind {
     KeywordLoad,
     KeywordStore,
+    KeywordCopy,
     KeywordAloc,
     KeywordPush,
     KeywordPop,
@@ -50,6 +51,7 @@ pub enum TokenKind {
     KeywordCall,
     KeywordAnd,
     KeywordOr,
+    KeywordShiftLeft,
     KeywordReturn,
     KeywordSyscall,
     Number(u64),
@@ -198,6 +200,7 @@ impl<'a> Lexer<'a> {
         let kind = match identifier.as_str() {
             "load" => TokenKind::KeywordLoad,
             "store" => TokenKind::KeywordStore,
+            "copy" => TokenKind::KeywordCopy,
             "aloc" => TokenKind::KeywordAloc,
             "push" => TokenKind::KeywordPush,
             "pop" => TokenKind::KeywordPop,
@@ -213,6 +216,7 @@ impl<'a> Lexer<'a> {
             "call" => TokenKind::KeywordCall,
             "and" => TokenKind::KeywordAnd,
             "or" => TokenKind::KeywordOr,
+            "shr" => TokenKind::KeywordShiftLeft,
             "return" => TokenKind::KeywordReturn,
             "syscall" => TokenKind::KeywordSyscall,
             _ => TokenKind::Identifier(identifier),

@@ -408,6 +408,7 @@ impl Parser {
             let maybe_error = match kind {
                 TokenKind::KeywordLoad => self.parse_reg_imm(token, Opcode::Load),
                 TokenKind::KeywordStore => self.parse_reg_2(token, Opcode::Store),
+                TokenKind::KeywordCopy => self.parse_reg_2(token, Opcode::Copy),
                 TokenKind::KeywordAloc => self.parse_reg_1(token, Opcode::Aloc),
                 TokenKind::KeywordPush => self.parse_reg_1(token, Opcode::Push),
                 TokenKind::KeywordPop => self.parse_reg_1(token, Opcode::Pop),
@@ -423,6 +424,7 @@ impl Parser {
                 TokenKind::KeywordCall => self.parse_reg_0_label(token, Opcode::Call),
                 TokenKind::KeywordAnd => self.parse_reg_3(token, Opcode::And),
                 TokenKind::KeywordOr => self.parse_reg_3(token, Opcode::Or),
+                TokenKind::KeywordShiftLeft => self.parse_reg_3(token, Opcode::Shr),
                 TokenKind::KeywordReturn => self.parse_no_args(token, Opcode::Return),
                 TokenKind::KeywordSyscall => self.parse_no_args(token, Opcode::Syscall),
                 TokenKind::Identifier(_) if matches!(self.peek_kind(), Some(&TokenKind::Colon)) => {

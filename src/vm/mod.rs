@@ -41,6 +41,26 @@ impl Vm {
         })
     }
 
+    pub fn with_args(mut self, args: Vec<String>) -> Self {
+        let length = args.len() as u64;
+        self.set_regester(0, length);
+
+        let mut ptr = 0u64;
+        for arg in args.into_iter() {
+            let len = arg.len() as u64;
+            self.stack.push((len << 32) | ptr);
+            for c in arg.chars() {
+                self.heap.push(c as u8);
+            }
+
+            ptr += len;
+        }
+
+        self.stack.reverse();
+
+        self
+    }
+
     pub fn get_regester(&self, reg: u8) -> &u64 {
         &self.regesters[reg as usize]
     }
@@ -92,6 +112,7 @@ impl Vm {
         match opcode {
             Opcode::Load => self.opcode_1reg_imm(Opcode::Load)?,
             Opcode::Store => self.opcode_2reg(Opcode::Store)?,
+            Opcode::Copy => self.opcode_2reg(Opcode::Copy)?,
             Opcode::Aloc => self.opcode_1reg(Opcode::Aloc)?,
             Opcode::Push => self.opcode_1reg(Opcode::Push)?,
             Opcode::Pop => self.opcode_1reg(Opcode::Pop)?,
@@ -107,6 +128,7 @@ impl Vm {
             Opcode::Call => self.opcode_label(Opcode::Call)?,
             Opcode::And => self.opcode_3reg(Opcode::And)?,
             Opcode::Or => self.opcode_3reg(Opcode::Or)?,
+            Opcode::Shr => self.opcode_3reg(Opcode::Shr)?,
             Opcode::Return => self.opcode_noargs(Opcode::Return)?,
             Opcode::Syscall => self.opcode_noargs(Opcode::Syscall)?,
         }
@@ -333,6 +355,15 @@ impl Execute for Instruction {
                     "Error for Store instruction: Store with two registers not implemented"
                 ),
             },
+            Opcode::Copy => match self.data {
+                Data::Reg2(des, src) => {
+                    // TODO: Copy of the type size could be valuable.
+                    let value = *vm.get_regester(src as u8);
+                    vm.set_regester(des as u8, value);
+                    Ok(())
+                }
+                _ => unreachable!("Error for Copy instruction"),
+            },
             Opcode::Aloc => match self.data {
                 Data::Reg1(reg) => {
                     let value = *vm.get_regester(reg as u8) as usize;
@@ -459,6 +490,15 @@ impl Execute for Instruction {
                     let lhs = vm.get_regester(reg_lhs as u8);
                     let rhs = vm.get_regester(reg_rhs as u8);
                     vm.set_regester(des as u8, lhs | rhs);
+                    Ok(())
+                }
+                _ => unreachable!("Error for Or instruction"),
+            },
+            Opcode::Shr => match self.data {
+                Data::Reg3(des, reg_lhs, reg_rhs) => {
+                    let lhs = vm.get_regester(reg_lhs as u8);
+                    let rhs = vm.get_regester(reg_rhs as u8);
+                    vm.set_regester(des as u8, lhs >> rhs);
                     Ok(())
                 }
                 _ => unreachable!("Error for Or instruction"),

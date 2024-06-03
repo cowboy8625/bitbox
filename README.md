@@ -30,23 +30,25 @@ Instructions consist of a 3 main parts.
 |:-----------|:----:|:----:|:----------------------------:|
 |✅  load    | 0    |      | Reg,Imm|
 |✅  store   | 1    |      | Reg,Reg|
-|✅  aloc    | 2    |      | Reg|
-|✅  push    | 3    |      | Reg|
-|✅  pop     | 4    |      | Reg|
-|✅  add     | 5    |      | Reg,Reg,Reg|
-|✅  sub     | 6    |      | Reg,Reg,Reg|
-|✅  div     | 7    |      | Reg,Reg,Reg|
-|✅  mul     | 8    |      | Reg,Reg,Reg|
-|✅  inc     | 9    |      | Reg|
-|✅  eq      | 10   |      | Reg,Reg|
-|✅  jne     | 11   |      | Label|
-|✅  hult    | 12   |      ||
-|✅  printreg| 13   |      | Reg|
-|✅  call    | 14   |      | Label|
-|✅  and     | 15   |      | Reg,Reg,Reg|
-|✅  or      | 16   |      | Reg,Reg,Reg|
-|✅  return  | 17   |      ||
-|✅  syscall | 18   |      ||
+|✅  copy    | 2    |      | Reg,Reg|
+|✅  aloc    | 3    |      | Reg|
+|✅  push    | 4    |      | Reg|
+|✅  pop     | 5    |      | Reg|
+|✅  add     | 6    |      | Reg,Reg,Reg|
+|✅  sub     | 7    |      | Reg,Reg,Reg|
+|✅  div     | 8    |      | Reg,Reg,Reg|
+|✅  mul     | 9    |      | Reg,Reg,Reg|
+|✅  inc     | 10   |      | Reg|
+|✅  eq      | 11   |      | Reg,Reg|
+|✅  jne     | 12   |      | Label|
+|✅  hult    | 13   |      ||
+|✅  printreg| 14   |      | Reg|
+|✅  call    | 15   |      | Label|
+|✅  and     | 16   |      | Reg,Reg,Reg|
+|✅  or      | 17   |      | Reg,Reg,Reg|
+|✅  shr     | 18   |      | Reg,Reg,Reg|
+|✅  return  | 19   |      ||
+|✅  syscall | 20   |      ||
 |🟥  jmp     | N/A  |      | Label|
 |🟥  jeq     | N/A  |      | Label|
 |🟥  nop     | N/A  |      ||
@@ -54,7 +56,6 @@ Instructions consist of a 3 main parts.
 |🟥  not     | N/A  |      | Reg|
 |🟥  xor     | N/A  |      | Reg,Reg,Reg|
 |🟥  shl     | N/A  |      | Reg,Reg,Reg|
-|🟥  shr     | N/A  |      | Reg,Reg,Reg|
 |🟥  sar     | N/A  |      | Reg,Reg,Reg|
 |🟥  rol     | N/A  |      | Reg,Reg,Reg|
 |🟥  ror     | N/A  |      | Reg,Reg,Reg|
@@ -69,6 +70,13 @@ Instructions consist of a 3 main parts.
 
 Register 0 is used for the syscall number, register 1-4 are used for arguments.
 
-| name | reg 0 |      reg 1    |     reg 2     | reg 3 | reg 4 |
-|:-----|:-----:|:-------------:|:-------------:|:-----:|:-----:|
-|WRITE | 0     | ptr to string | string length | N/A   | N/A   |
+| name | reg 0 |      reg 1    |     reg 2     |      reg 3    | reg 4 |
+|:-----|:-----:|:-------------:|:-------------:|:-------------:|:-----:|
+|WRITE | 0     | ptr to string | string length | static string | N/A   |
+
+## Command Line Arguments
+
+The command line arguments are placed in the heap.
+Each argument pointer will be place on the stack.
+Pointers will have the string length on the upper half of the pointer.
+Register 0 will be set to the number of arguments.
