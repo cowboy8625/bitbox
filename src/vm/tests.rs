@@ -207,9 +207,8 @@ fn store() -> Result<()> {
         .entry main
         main:
             load[u8] %0 1   ; One Byte
-            aloc[u8] %0     ; Allocate 1 Byte
+            aloc[u8] %2 %0     ; Allocate 1 Byte
             load[u8] %1 100 ; Value
-            load[u8] %2 0   ; Pointer/Index
             store[u8] %2 %1 ; Store Pointer/Index Value
             hult
         "#;
@@ -233,14 +232,15 @@ fn aloc() -> Result<()> {
         .entry main
         main:
             load[u8] %0 1
-            aloc[u8] %0
+            aloc[u8] %1 %0
             hult
         "#;
     let program = asm::assemble(&src)?;
     let mut vm = Vm::new(program)?;
     vm.run()?;
     assert_eq!(vm.get_regester(0), &1);
-    for i in 1..Vm::REGESTER_COUNT {
+    assert_eq!(vm.get_regester(1), &0);
+    for i in 2..Vm::REGESTER_COUNT {
         assert_eq!(vm.get_regester(i as u8), &0);
     }
     assert_eq!(vm.heap.len(), 1);

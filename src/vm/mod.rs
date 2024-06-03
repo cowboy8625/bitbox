@@ -113,7 +113,7 @@ impl Vm {
             Opcode::Load => self.opcode_1reg_imm(Opcode::Load)?,
             Opcode::Store => self.opcode_2reg(Opcode::Store)?,
             Opcode::Copy => self.opcode_2reg(Opcode::Copy)?,
-            Opcode::Aloc => self.opcode_1reg(Opcode::Aloc)?,
+            Opcode::Aloc => self.opcode_2reg(Opcode::Aloc)?,
             Opcode::Push => self.opcode_1reg(Opcode::Push)?,
             Opcode::Pop => self.opcode_1reg(Opcode::Pop)?,
             Opcode::Add => self.opcode_3reg(Opcode::Add)?,
@@ -365,9 +365,11 @@ impl Execute for Instruction {
                 _ => unreachable!("Error for Copy instruction"),
             },
             Opcode::Aloc => match self.data {
-                Data::Reg1(reg) => {
+                Data::Reg2(ret, reg) => {
                     let value = *vm.get_regester(reg as u8) as usize;
                     let current_heap_size = vm.heap.len();
+                    let location = vm.heap.len();
+                    vm.set_regester(ret as u8, location as u64);
                     vm.heap
                         .resize_with(current_heap_size + value, Default::default);
                     Ok(())

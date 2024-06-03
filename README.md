@@ -31,7 +31,7 @@ Instructions consist of a 3 main parts.
 |✅  load    | 0    |      | Reg,Imm|
 |✅  store   | 1    |      | Reg,Reg|
 |✅  copy    | 2    |      | Reg,Reg|
-|✅  aloc    | 3    |      | Reg|
+|✅  aloc    | 3    |      | Reg,Reg|
 |✅  push    | 4    |      | Reg|
 |✅  pop     | 5    |      | Reg|
 |✅  add     | 6    |      | Reg,Reg,Reg|
@@ -40,7 +40,7 @@ Instructions consist of a 3 main parts.
 |✅  mul     | 9    |      | Reg,Reg,Reg|
 |✅  inc     | 10   |      | Reg|
 |✅  eq      | 11   |      | Reg,Reg|
-|✅  jne     | 12   |      | Label|
+|✅  jne     | 12   |      | Reg,Reg,Label|
 |✅  hult    | 13   |      ||
 |✅  printreg| 14   |      | Reg|
 |✅  call    | 15   |      | Label|
@@ -80,3 +80,43 @@ The command line arguments are placed in the heap.
 Each argument pointer will be place on the stack.
 Pointers will have the string length on the upper half of the pointer.
 Register 0 will be set to the number of arguments.
+### Example
+Print all arguments given to program
+```asm
+.entry main
+main:
+    copy[u64] %31 %0 ; args length
+    load[u64] %30 0  ; count
+    load[u64] %0  1  ; length of string
+    aloc[u64] %29 %0
+    load[u8] %0  0xA  ; char `\n`
+    store[u8] %29 %0
+
+loop:
+    ; get the ptr to string and length
+    pop[u64] %5
+
+    ; get ptr
+    load[u64] %1 0b1111_1111_1111_1111_1111_1111_1111_1111
+    and[u64] %1 %1 %5
+
+    ; get length
+    load[u64] %6 32
+    shr[u64] %2 %5 %6 ; shift right by 32 bits
+
+    ; write first arg
+    load[u8] %0 0
+    ; %1 ptr
+    ; %2 length
+    load[u8] %3 0
+    syscall
+
+    copy[u64] %1 %29 ; ptr
+    load[u64] %2 1   ; length
+    syscall
+
+    inc[u64] %30
+    jne %31 %30 loop
+
+    hult
+```

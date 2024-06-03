@@ -13,8 +13,14 @@ fn main() -> Result<()> {
     let src = r#"
 .entry main
 main:
-    copy[u64] %31 %0
+    copy[u64] %31 %0 ; args length
+    load[u64] %30 0  ; count
+    load[u64] %0  1  ; length of string
+    aloc[u64] %29 %0
+    load[u8] %0  0xA  ; char `\n`
+    store[u8] %29 %0
 
+loop:
     ; get the ptr to string and length
     pop[u64] %5
 
@@ -32,6 +38,13 @@ main:
     ; %2 length
     load[u8] %3 0
     syscall
+
+    copy[u64] %1 %29 ; ptr
+    load[u64] %2 1   ; length
+    syscall
+
+    inc[u64] %30
+    jne %31 %30 loop
 
     hult
     "#;

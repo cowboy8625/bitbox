@@ -409,7 +409,7 @@ impl Parser {
                 TokenKind::KeywordLoad => self.parse_reg_imm(token, Opcode::Load),
                 TokenKind::KeywordStore => self.parse_reg_2(token, Opcode::Store),
                 TokenKind::KeywordCopy => self.parse_reg_2(token, Opcode::Copy),
-                TokenKind::KeywordAloc => self.parse_reg_1(token, Opcode::Aloc),
+                TokenKind::KeywordAloc => self.parse_reg_2(token, Opcode::Aloc),
                 TokenKind::KeywordPush => self.parse_reg_1(token, Opcode::Push),
                 TokenKind::KeywordPop => self.parse_reg_1(token, Opcode::Pop),
                 TokenKind::KeywordAdd => self.parse_reg_3(token, Opcode::Add),
