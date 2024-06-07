@@ -52,10 +52,10 @@ pub enum Register {
     R31 = 31,
 }
 
-impl TryFrom<(u8, Span)> for Register {
-    type Error = BitBoxError;
+impl TryFrom<u8> for Register {
+    type Error = &'static str;
 
-    fn try_from((value, span): (u8, Span)) -> Result<Self, Self::Error> {
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(Self::R0),
             1 => Ok(Self::R1),
@@ -89,8 +89,16 @@ impl TryFrom<(u8, Span)> for Register {
             29 => Ok(Self::R29),
             30 => Ok(Self::R30),
             31 => Ok(Self::R31),
-            _ => Err(BitBoxError::RegisterOutOfBounds(value, span)),
+            _ => Err("Register out of bounds"),
         }
+    }
+}
+
+impl TryFrom<(u8, Span)> for Register {
+    type Error = BitBoxError;
+
+    fn try_from((value, span): (u8, Span)) -> Result<Self, Self::Error> {
+        Self::try_from(value).map_err(|_| BitBoxError::RegisterOutOfBounds(value, span))
     }
 }
 

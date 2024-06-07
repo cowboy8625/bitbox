@@ -1,10 +1,7 @@
 mod lexer;
 mod parser;
-use self::parser::Text;
-use crate::asm::{
-    lexer::{Token, TokenKind},
-    parser::Item,
-};
+pub use self::parser::{Item, Label, Text};
+use crate::asm::lexer::{Token, TokenKind};
 use crate::instructions::Label;
 use anyhow::Result;
 use std::collections::HashMap;

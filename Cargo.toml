@@ -7,3 +7,11 @@ edition = "2021"
 anyhow = "1.0.82"
 thiserror = "1.0.59"
 insta = "1.38.0"
+
+[lib]
+name = "bitbox"
+path = "src/lib.rs"
+
+[[bin]]
+name = "bitbox"
+path = "src/main.rs"
