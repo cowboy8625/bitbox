@@ -1,9 +1,9 @@
-// pub mod asm;
-// pub mod error;
-// pub mod instructions;
-// pub mod prelude;
-// pub mod utils;
-// pub mod vm;
+pub mod asm;
+pub mod error;
+pub mod instructions;
+pub mod prelude;
+pub mod utils;
+pub mod vm;
 //
 // use anyhow::Result;
 // use asm::{Item, Text};

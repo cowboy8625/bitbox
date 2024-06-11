@@ -1,6 +1,6 @@
 mod lexer;
 mod parser;
-pub use self::parser::{Item, Label, Text};
+pub use self::parser::{Item, Text};
 use crate::asm::lexer::{Token, TokenKind};
 use crate::instructions::Label;
 use anyhow::Result;
