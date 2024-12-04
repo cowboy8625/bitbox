@@ -1,0 +1,9 @@
+[package]
+name = "bitbox"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+[dev-dependencies]
+insta = { version = "1.41.1", features = ["yaml"] }

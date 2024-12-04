@@ -1,0 +1,31 @@
+---
+source: src/lexer/test.rs
+expression: snapshot_lexing(contents)
+---
+function add(x: Number, y: Number) Number {
+^^^^^^^^ Function { lexeme: "function", span: 0..8 }
+         ^^^ Identifier { lexeme: "add", span: 9..12 }
+            ^ LeftParen { lexeme: "(", span: 12..13 }
+             ^ Identifier { lexeme: "x", span: 13..14 }
+              ^ Colon { lexeme: ":", span: 14..15 }
+                ^^^^^^ Identifier { lexeme: "Number", span: 16..22 }
+                      ^ Comma { lexeme: ",", span: 22..23 }
+                        ^ Identifier { lexeme: "y", span: 24..25 }
+                         ^ Colon { lexeme: ":", span: 25..26 }
+                           ^^^^^^ Identifier { lexeme: "Number", span: 27..33 }
+                                 ^ RightParen { lexeme: ")", span: 33..34 }
+                                   ^^^^^^ Identifier { lexeme: "Number", span: 35..41 }
+                                          ^ LeftBrace { lexeme: "(", span: 42..43 }
+    z = x + y;
+    ^ Identifier { lexeme: "z", span: 48..49 }
+      ^ InvalidToken { lexeme: "=", span: 50..51 }
+        ^ Identifier { lexeme: "x", span: 52..53 }
+          ^ Plus { lexeme: "+", span: 54..55 }
+            ^ Identifier { lexeme: "y", span: 56..57 }
+             ^ Semicolon { lexeme: ";", span: 57..58 }
+    return z;
+    ^^^^^^ Return { lexeme: "return", span: 63..69 }
+           ^ Identifier { lexeme: "z", span: 70..71 }
+            ^ Semicolon { lexeme: ";", span: 71..72 }
+}
+^ RightBrace { lexeme: ")", span: 73..74 }

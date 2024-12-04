@@ -1,0 +1,4 @@
+function add(x: Number, y: Number) Number {
+    z = x + y;
+    return z;
+}
