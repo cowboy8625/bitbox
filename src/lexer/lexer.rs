@@ -1,7 +1,7 @@
 use super::token;
 use crate::ast::{
-    Colon, Comma, Function, Identifier, InvalidToken, LeftBrace, LeftParen, Number, Plus, Return,
-    RightBrace, RightParen, Semicolon,
+    Colon, Comma, Equals, Function, Identifier, If, InvalidToken, LeftBrace, LeftParen, Number,
+    Plus, Return, RightBrace, RightParen, Semicolon,
 };
 
 type Token = Box<dyn token::Token>;
@@ -53,13 +53,15 @@ impl<'a> Lexer<'a> {
 
     fn parse_identifier(&mut self, value: char) -> Token {
         let mut lexeme = String::from(value);
-        while let Some(value) = self.next_if(|value| value.is_ascii_alphabetic() || value == '_') {
+        while let Some(value) = self.next_if(|value| value.is_ascii_alphanumeric() || value == '_')
+        {
             lexeme.push(value);
         }
 
         match lexeme.as_str() {
             "function" => token::create::<Function>("function", self.spanned()),
             "return" => token::create::<Return>("return", self.spanned()),
+            "if" => token::create::<If>("return", self.spanned()),
             _ => token::create::<Identifier>(lexeme, self.spanned()),
         }
     }
@@ -80,6 +82,7 @@ impl<'a> Lexer<'a> {
             Some(':') => Some(token::create::<Colon>(':', self.spanned())),
             Some(';') => Some(token::create::<Semicolon>(';', self.spanned())),
             Some(',') => Some(token::create::<Comma>(',', self.spanned())),
+            Some('=') => Some(token::create::<Equals>('=', self.spanned())),
             Some(value) => Some(token::create::<InvalidToken>(value, self.span.clone())),
             None => None,
         }

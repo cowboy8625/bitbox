@@ -1,14 +1,12 @@
 mod ast;
 mod lexer;
+mod parser;
+mod ssa;
+mod stream;
 
 fn main() {
-    let src = r#"
-function add(x: Number, y: Number) Number {
-    z = x + y;
-    return ;
-}
-"#;
-
+    let src = include_str!("../snapshots/basic.bitbox");
     let tokens = lexer::lex(src);
-    println!("{:#?}", tokens);
+    let program = parser::Parser::new(tokens).parse();
+    println!("{:#?}", program);
 }

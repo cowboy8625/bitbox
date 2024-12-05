@@ -4,7 +4,7 @@ use std::any::Any;
 macro_rules! tokens {
     ($($name:ident, )* $(,)?) => {
         $(
-        #[derive(Debug, PartialEq, Clone)]
+        #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         pub struct $name {
             lexeme: String,
             span: Span,
@@ -37,6 +37,7 @@ macro_rules! tokens {
 tokens! {
     Function,
     Return,
+    If,
     LeftParen,
     RightParen,
     LeftBrace,
@@ -45,8 +46,14 @@ tokens! {
     Plus,
     Semicolon,
     Comma,
+    Equals,
     Number,
     Identifier,
     BBString,
     InvalidToken,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Operator {
+    Add(Plus),
 }
