@@ -10,8 +10,8 @@ pub struct SsaVariable {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SsaInstruction {
-    Assign(SsaVariable, Operand),                           // x: type = 1
-    BinaryOp(SsaVariable, Operand, ast::Operator, Operand), // x: type = 1 + 2
+    Assign(SsaVariable, Operand), // x: type = 1
+    Add(SsaVariable, Operand, Operand),
     Return(Operand),
     Phi(SsaVariable, Vec<(SsaVariable, usize)>),
 }

@@ -1,0 +1,83 @@
+---
+source: src/parser/test.rs
+expression: snapshot_parsing(contents)
+---
+Ok(
+    Program {
+        functions: [
+            Function {
+                name: "add_function",
+                arguments: [
+                    SsaVariable {
+                        name: Identifier {
+                            lexeme: "x",
+                            span: 22..23,
+                        },
+                        ty: Identifier {
+                            lexeme: "i32",
+                            span: 25..28,
+                        },
+                        version: 0,
+                    },
+                    SsaVariable {
+                        name: Identifier {
+                            lexeme: "y",
+                            span: 30..31,
+                        },
+                        ty: Identifier {
+                            lexeme: "i32",
+                            span: 33..36,
+                        },
+                        version: 1,
+                    },
+                ],
+                return_type: Identifier {
+                    lexeme: "i32",
+                    span: 38..41,
+                },
+                blocks: [
+                    BasicBlock {
+                        id: 0,
+                        instructions: [
+                            Add(
+                                SsaVariable {
+                                    name: Identifier {
+                                        lexeme: "z",
+                                        span: 48..49,
+                                    },
+                                    ty: Identifier {
+                                        lexeme: "i32",
+                                        span: 52..55,
+                                    },
+                                    version: 0,
+                                },
+                                Variable(
+                                    Identifier {
+                                        lexeme: "x",
+                                        span: 62..63,
+                                    },
+                                ),
+                                Variable(
+                                    Identifier {
+                                        lexeme: "y",
+                                        span: 65..66,
+                                    },
+                                ),
+                            ),
+                            Return(
+                                Variable(
+                                    Identifier {
+                                        lexeme: "z",
+                                        span: 76..77,
+                                    },
+                                ),
+                            ),
+                        ],
+                        successors: [],
+                        predecessors: [],
+                    },
+                ],
+            },
+        ],
+    },
+)

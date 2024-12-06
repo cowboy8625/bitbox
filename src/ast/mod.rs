@@ -38,6 +38,7 @@ tokens! {
     Function,
     Return,
     If,
+    Add,
     LeftParen,
     RightParen,
     LeftBrace,
@@ -51,9 +52,4 @@ tokens! {
     Identifier,
     BBString,
     InvalidToken,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Operator {
-    Add(Plus),
 }

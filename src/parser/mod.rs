@@ -1,4 +1,6 @@
-use crate::ast::{self, Identifier};
+#[cfg(test)]
+mod test;
+use crate::ast;
 use crate::lexer::token::{Span, Token};
 use crate::ssa;
 use crate::stream::TokenStream;
@@ -45,7 +47,7 @@ impl Parser {
             }
             Some(value) => Err(ParseError::UnexpectedToken {
                 expected: std::any::type_name::<Expected>().to_string(),
-                found: value.get_lexeme(),
+                found: format!("{value:?}"),
                 span: value.get_span(),
             }),
             None => Err(ParseError::UnexpectedEndOfStream),
@@ -58,7 +60,6 @@ impl Parser {
         let arguments = self.parse_function_params()?;
         let return_type = self.consume::<ast::Identifier>()?;
         let blocks = self.parse_function_block()?;
-        eprintln!("Parsing function {}", func_name.get_lexeme());
 
         Ok(ssa::Function {
             name: func_name.get_lexeme(),
@@ -107,6 +108,7 @@ impl Parser {
             if self.stream.is_peek_a::<ast::RightBrace>() {
                 break;
             }
+
             if self.stream.is_peek_a::<ast::If>() {
                 todo!();
                 // continue;
@@ -118,31 +120,18 @@ impl Parser {
                 continue;
             }
 
+            // z : i32 = add x, y;
             let name = self.consume::<ast::Identifier>()?;
             self.consume::<ast::Colon>()?;
             let ty = self.consume::<ast::Identifier>()?;
             self.consume::<ast::Equals>()?;
-            let lhs = self.parse_operand()?;
-            if self.stream.is_peek_a::<ast::Semicolon>() {
-                self.consume::<ast::Semicolon>()?;
-                let variable = ssa::SsaVariable {
-                    name,
-                    ty,
-                    version: 0,
-                };
-                instructions.push(ssa::SsaInstruction::Assign(variable, lhs));
+
+            if self.stream.is_peek_a::<ast::Add>() {
+                let instruction = self.parse_add_instruction(name, ty)?;
+                instructions.push(instruction);
                 continue;
             }
-
-            let variable = ssa::SsaVariable {
-                name,
-                ty,
-                version: 0,
-            };
-            let operator = self.parse_operator()?;
-            let rhs = self.parse_operand()?;
-            instructions.push(ssa::SsaInstruction::BinaryOp(variable, lhs, operator, rhs));
-            self.consume::<ast::Semicolon>()?;
+            todo!("unimplemented");
         }
         Ok(ssa::BasicBlock {
             id: 0,
@@ -150,6 +139,24 @@ impl Parser {
             successors: vec![],
             predecessors: vec![],
         })
+    }
+
+    fn parse_add_instruction(
+        &mut self,
+        name: ast::Identifier,
+        ty: ast::Identifier,
+    ) -> Result<ssa::SsaInstruction, ParseError> {
+        self.consume::<ast::Add>()?;
+        let var = ssa::SsaVariable {
+            name,
+            ty,
+            version: 0,
+        };
+        let lhs = self.parse_operand()?;
+        self.consume::<ast::Comma>()?;
+        let rhs = self.parse_operand()?;
+        self.consume::<ast::Semicolon>()?;
+        Ok(ssa::SsaInstruction::Add(var, lhs, rhs))
     }
 
     fn parse_assignment(&mut self) -> Result<ssa::SsaInstruction, ParseError> {
@@ -167,9 +174,5 @@ impl Parser {
         }
         let tok = self.consume::<ast::Identifier>()?;
         Ok(ssa::Operand::Variable(tok))
-    }
-
-    fn parse_operator(&mut self) -> Result<ast::Operator, ParseError> {
-        self.consume::<ast::Plus>().map(ast::Operator::Add)
     }
 }
