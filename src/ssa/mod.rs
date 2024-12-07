@@ -40,7 +40,7 @@ pub enum Visibility {
 pub struct Function {
     pub visibility: Visibility,
     pub name: String,
-    pub arguments: Vec<Variable>,
+    pub params: Vec<Variable>,
     pub return_type: ast::Identifier,
     pub blocks: Vec<BasicBlock>,
 }

@@ -75,14 +75,14 @@ impl Parser {
     fn parse_function(&mut self, visibility: ssa::Visibility) -> Result<ssa::Function, ParseError> {
         self.consume::<ast::Function>()?;
         let func_name = self.consume::<ast::Identifier>()?;
-        let arguments = self.parse_function_params()?;
+        let params = self.parse_function_params()?;
         let return_type = self.consume::<ast::Identifier>()?;
         let blocks = self.parse_function_block()?;
 
         Ok(ssa::Function {
             visibility,
             name: func_name.get_lexeme(),
-            arguments,
+            params,
             return_type,
             blocks,
         })
