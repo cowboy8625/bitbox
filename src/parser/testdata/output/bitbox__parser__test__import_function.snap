@@ -1,0 +1,11 @@
+---
+source: src/parser/test.rs
+expression: snapshot_parsing(contents)
+---
+Err(
+    UnexpectedToken {
+        expected: "function",
+        found: "import",
+        span: 0..6,
+    },
+)

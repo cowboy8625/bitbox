@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod test;
-use crate::ast;
+use crate::ast::{self, Identifier};
 use crate::lexer::token::{Span, Token};
-use crate::ssa::{self, Visibility};
+use crate::ssa;
 use crate::stream::TokenStream;
 
 #[derive(Debug)]
@@ -60,6 +60,18 @@ impl Parser {
         }
     }
 
+    fn consume_identifier(&mut self, value: &str) -> Result<ast::Identifier, ParseError> {
+        let tok = self.consume::<Identifier>()?;
+        if tok.lexeme != value {
+            return Err(ParseError::UnexpectedToken {
+                expected: value.to_string(),
+                found: tok.lexeme.to_string(),
+                span: tok.span,
+            });
+        }
+        Ok(tok)
+    }
+
     fn peek_is_identifier(&self, value: &str) -> bool {
         let Some(peek) = self
             .stream
@@ -72,8 +84,16 @@ impl Parser {
         value == peek
     }
 
+    fn peek_is_builtin(&self, value: &str) -> bool {
+        let Some(peek) = self.stream.peek::<ast::Builtin>().map(|i| i.get_lexeme()) else {
+            return false;
+        };
+
+        value == peek
+    }
+
     fn parse_function(&mut self, visibility: ssa::Visibility) -> Result<ssa::Function, ParseError> {
-        self.consume::<ast::Function>()?;
+        self.consume_identifier("function")?;
         let func_name = self.consume::<ast::Identifier>()?;
         let params = self.parse_function_params()?;
         let return_type = self.consume::<ast::Identifier>()?;
@@ -128,24 +148,23 @@ impl Parser {
                 break;
             }
 
-            if self.stream.is_peek_a::<ast::If>() {
-                todo!();
-                // continue;
-            } else if self.stream.is_peek_a::<ast::Return>() {
-                self.consume::<ast::Return>()?;
+            if self.peek_is_builtin("@ret") {
+                self.consume::<ast::Builtin>()?;
                 let value = self.parse_operand()?;
                 instructions.push(ssa::Instruction::Return(value));
                 self.consume::<ast::Semicolon>()?;
                 continue;
+            } else if self.peek_is_identifier("if") {
+                todo!();
             }
 
-            // z : i32 = add x, y;
+            // z : i32 = @add x, y;
             let name = self.consume::<ast::Identifier>()?;
             self.consume::<ast::Colon>()?;
             let ty = self.consume::<ast::Identifier>()?;
             self.consume::<ast::Equals>()?;
 
-            if self.peek_is_identifier("add") {
+            if self.peek_is_builtin("@add") {
                 let instruction = self.parse_add_instruction(name, ty)?;
                 instructions.push(instruction);
                 continue;
@@ -165,7 +184,7 @@ impl Parser {
         name: ast::Identifier,
         ty: ast::Identifier,
     ) -> Result<ssa::Instruction, ParseError> {
-        self.consume::<ast::Identifier>()?;
+        self.consume::<ast::Builtin>()?;
         let var = ssa::Variable {
             name,
             ty,
@@ -176,14 +195,6 @@ impl Parser {
         let rhs = self.parse_operand()?;
         self.consume::<ast::Semicolon>()?;
         Ok(ssa::Instruction::Add(var, lhs, rhs))
-    }
-
-    fn parse_assignment(&mut self) -> Result<ssa::Instruction, ParseError> {
-        todo!()
-    }
-
-    fn parse_binary_op(&mut self) -> Result<ssa::Instruction, ParseError> {
-        todo!()
     }
 
     fn parse_operand(&mut self) -> Result<ssa::Operand, ParseError> {

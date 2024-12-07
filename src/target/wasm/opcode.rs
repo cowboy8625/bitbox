@@ -1,3 +1,4 @@
+#![allow(unused)]
 use super::section::DataType;
 use anyhow::Result;
 

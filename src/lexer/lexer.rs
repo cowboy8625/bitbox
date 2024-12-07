@@ -1,7 +1,7 @@
 use super::token;
 use crate::ast::{
-    Colon, Comma, Equals, Function, Identifier, If, InvalidToken, LeftBrace, LeftParen, Number,
-    Plus, Return, RightBrace, RightParen, Semicolon,
+    BBString, Builtin, Colon, Comma, Equals, Identifier, InvalidToken, LeftBrace, LeftParen,
+    Number, Plus, RightBrace, RightParen, Semicolon,
 };
 
 type Token = Box<dyn token::Token>;
@@ -58,12 +58,28 @@ impl<'a> Lexer<'a> {
             lexeme.push(value);
         }
 
-        match lexeme.as_str() {
-            "function" => token::create::<Function>(lexeme, self.spanned()),
-            "ret" => token::create::<Return>(lexeme, self.spanned()),
-            "if" => token::create::<If>(lexeme, self.spanned()),
-            _ => token::create::<Identifier>(lexeme, self.spanned()),
+        token::create::<Identifier>(lexeme, self.spanned())
+    }
+
+    fn parse_builtin(&mut self) -> Token {
+        let mut lexeme = String::from('@');
+        while let Some(value) = self.next_if(|value| value.is_ascii_alphanumeric() || value == '_')
+        {
+            lexeme.push(value);
         }
+
+        token::create::<Builtin>(lexeme, self.spanned())
+    }
+
+    fn parse_string(&mut self) -> Token {
+        let mut lexeme = String::from('#');
+        while let Some(value) = self.next() {
+            lexeme.push(value);
+            if lexeme.ends_with("\"#") {
+                break;
+            }
+        }
+        token::create::<BBString>(lexeme, self.spanned())
     }
 
     fn parse(&mut self) -> Option<Token> {
@@ -74,6 +90,8 @@ impl<'a> Lexer<'a> {
                 self.spanned();
                 self.parse()
             }
+            Some('#') if self.chars.peek() == Some(&'"') => Some(self.parse_string()),
+            Some('@') => Some(self.parse_builtin()),
             Some('+') => Some(token::create::<Plus>('+', self.spanned())),
             Some('(') => Some(token::create::<LeftParen>('(', self.spanned())),
             Some(')') => Some(token::create::<RightParen>(')', self.spanned())),
@@ -95,4 +113,10 @@ impl Iterator for Lexer<'_> {
     fn next(&mut self) -> Option<Self::Item> {
         self.parse()
     }
+}
+
+#[test]
+fn test_lexer() {
+    let token = Lexer::new("#\"test\"#").parse().unwrap();
+    assert_eq!(token.get_lexeme(), "#\"test\"#");
 }

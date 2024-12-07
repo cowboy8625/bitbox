@@ -1,3 +1,9 @@
-public function main() void {
+import core::write;
+
+const value_ptr : u32 = #"Hello World\n"#;
+const value_len : u32 = @getStringByteLength value_ptr;
+
+public function main() i32 {
+    call write(value_ptr, value_len);
     ret 1;
 }

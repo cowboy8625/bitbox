@@ -8,7 +8,7 @@ Ok(
             Function {
                 visibility: Public,
                 name: "add",
-                arguments: [
+                params: [
                     Variable {
                         name: Identifier {
                             lexeme: "x",
@@ -55,13 +55,13 @@ Ok(
                                 Variable(
                                     Identifier {
                                         lexeme: "x",
-                                        span: 60..61,
+                                        span: 61..62,
                                     },
                                 ),
                                 Variable(
                                     Identifier {
                                         lexeme: "y",
-                                        span: 63..64,
+                                        span: 64..65,
                                     },
                                 ),
                             ),
@@ -69,7 +69,7 @@ Ok(
                                 Variable(
                                     Identifier {
                                         lexeme: "z",
-                                        span: 74..75,
+                                        span: 76..77,
                                     },
                                 ),
                             ),
