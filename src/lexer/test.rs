@@ -42,3 +42,4 @@ macro_rules! snapshot {
 }
 
 snapshot!(binary, "../../snapshots/basic.bitbox");
+snapshot!(import_function, "../../snapshots/import_function.bitbox");
