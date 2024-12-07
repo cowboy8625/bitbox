@@ -1,7 +1,7 @@
 use super::token;
 use crate::ast::{
-    Add, Colon, Comma, Equals, Function, Identifier, If, InvalidToken, LeftBrace, LeftParen,
-    Number, Plus, Return, RightBrace, RightParen, Semicolon,
+    Colon, Comma, Equals, Function, Identifier, If, InvalidToken, LeftBrace, LeftParen, Number,
+    Plus, Return, RightBrace, RightParen, Semicolon,
 };
 
 type Token = Box<dyn token::Token>;
@@ -62,7 +62,6 @@ impl<'a> Lexer<'a> {
             "function" => token::create::<Function>(lexeme, self.spanned()),
             "ret" => token::create::<Return>(lexeme, self.spanned()),
             "if" => token::create::<If>(lexeme, self.spanned()),
-            "add" => token::create::<Add>(lexeme, self.spanned()),
             _ => token::create::<Identifier>(lexeme, self.spanned()),
         }
     }

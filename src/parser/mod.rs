@@ -2,7 +2,7 @@
 mod test;
 use crate::ast;
 use crate::lexer::token::{Span, Token};
-use crate::ssa;
+use crate::ssa::{self, Visibility};
 use crate::stream::TokenStream;
 
 #[derive(Debug)]
@@ -30,7 +30,13 @@ impl Parser {
         let mut functions = vec![];
 
         while self.stream.is_not_at_end() {
-            let function = self.parse_function()?;
+            let visibility = if self.peek_is_identifier("public") {
+                self.consume::<ast::Identifier>()?;
+                ssa::Visibility::Public
+            } else {
+                ssa::Visibility::Private
+            };
+            let function = self.parse_function(visibility)?;
             functions.push(function);
         }
 
@@ -54,7 +60,19 @@ impl Parser {
         }
     }
 
-    fn parse_function(&mut self) -> Result<ssa::Function, ParseError> {
+    fn peek_is_identifier(&self, value: &str) -> bool {
+        let Some(peek) = self
+            .stream
+            .peek::<ast::Identifier>()
+            .map(|i| i.get_lexeme())
+        else {
+            return false;
+        };
+
+        value == peek
+    }
+
+    fn parse_function(&mut self, visibility: ssa::Visibility) -> Result<ssa::Function, ParseError> {
         self.consume::<ast::Function>()?;
         let func_name = self.consume::<ast::Identifier>()?;
         let arguments = self.parse_function_params()?;
@@ -62,6 +80,7 @@ impl Parser {
         let blocks = self.parse_function_block()?;
 
         Ok(ssa::Function {
+            visibility,
             name: func_name.get_lexeme(),
             arguments,
             return_type,
@@ -69,7 +88,7 @@ impl Parser {
         })
     }
 
-    fn parse_function_params(&mut self) -> Result<Vec<ssa::SsaVariable>, ParseError> {
+    fn parse_function_params(&mut self) -> Result<Vec<ssa::Variable>, ParseError> {
         self.consume::<ast::LeftParen>()?;
         let mut params = vec![];
 
@@ -79,7 +98,7 @@ impl Parser {
             self.consume::<ast::Colon>()?;
             let ty = self.consume::<ast::Identifier>()?;
 
-            let param = ssa::SsaVariable { name, ty, version };
+            let param = ssa::Variable { name, ty, version };
             params.push(param);
             if !self.stream.is_peek_a::<ast::Comma>() {
                 break;
@@ -115,7 +134,7 @@ impl Parser {
             } else if self.stream.is_peek_a::<ast::Return>() {
                 self.consume::<ast::Return>()?;
                 let value = self.parse_operand()?;
-                instructions.push(ssa::SsaInstruction::Return(value));
+                instructions.push(ssa::Instruction::Return(value));
                 self.consume::<ast::Semicolon>()?;
                 continue;
             }
@@ -126,7 +145,7 @@ impl Parser {
             let ty = self.consume::<ast::Identifier>()?;
             self.consume::<ast::Equals>()?;
 
-            if self.stream.is_peek_a::<ast::Add>() {
+            if self.peek_is_identifier("add") {
                 let instruction = self.parse_add_instruction(name, ty)?;
                 instructions.push(instruction);
                 continue;
@@ -145,9 +164,9 @@ impl Parser {
         &mut self,
         name: ast::Identifier,
         ty: ast::Identifier,
-    ) -> Result<ssa::SsaInstruction, ParseError> {
-        self.consume::<ast::Add>()?;
-        let var = ssa::SsaVariable {
+    ) -> Result<ssa::Instruction, ParseError> {
+        self.consume::<ast::Identifier>()?;
+        let var = ssa::Variable {
             name,
             ty,
             version: 0,
@@ -156,14 +175,14 @@ impl Parser {
         self.consume::<ast::Comma>()?;
         let rhs = self.parse_operand()?;
         self.consume::<ast::Semicolon>()?;
-        Ok(ssa::SsaInstruction::Add(var, lhs, rhs))
+        Ok(ssa::Instruction::Add(var, lhs, rhs))
     }
 
-    fn parse_assignment(&mut self) -> Result<ssa::SsaInstruction, ParseError> {
+    fn parse_assignment(&mut self) -> Result<ssa::Instruction, ParseError> {
         todo!()
     }
 
-    fn parse_binary_op(&mut self) -> Result<ssa::SsaInstruction, ParseError> {
+    fn parse_binary_op(&mut self) -> Result<ssa::Instruction, ParseError> {
         todo!()
     }
 

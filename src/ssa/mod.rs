@@ -2,18 +2,18 @@
 use crate::ast;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct SsaVariable {
+pub struct Variable {
     pub name: ast::Identifier,
     pub ty: ast::Identifier,
     pub version: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum SsaInstruction {
-    Assign(SsaVariable, Operand), // x: type = 1
-    Add(SsaVariable, Operand, Operand),
+pub enum Instruction {
+    Assign(Variable, Operand), // x: type = 1
+    Add(Variable, Operand, Operand),
     Return(Operand),
-    Phi(SsaVariable, Vec<(SsaVariable, usize)>),
+    Phi(Variable, Vec<(Variable, usize)>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -25,15 +25,22 @@ pub enum Operand {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BasicBlock {
     pub id: usize,
-    pub instructions: Vec<SsaInstruction>,
+    pub instructions: Vec<Instruction>,
     pub successors: Vec<usize>,
     pub predecessors: Vec<usize>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Visibility {
+    Public,
+    Private,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Function {
+    pub visibility: Visibility,
     pub name: String,
-    pub arguments: Vec<SsaVariable>,
+    pub arguments: Vec<Variable>,
     pub return_type: ast::Identifier,
     pub blocks: Vec<BasicBlock>,
 }

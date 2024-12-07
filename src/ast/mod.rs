@@ -6,8 +6,8 @@ macro_rules! tokens {
         $(
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         pub struct $name {
-            lexeme: String,
-            span: Span,
+            pub lexeme: String,
+            pub span: Span,
         }
 
         impl Token for $name {

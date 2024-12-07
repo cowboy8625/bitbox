@@ -2,33 +2,34 @@
 source: src/lexer/test.rs
 expression: snapshot_lexing(contents)
 ---
-function add_function(x: i32, y: i32) i32 {
-^^^^^^^^ Function { lexeme: "function", span: 0..8 }
-         ^^^^^^^^^^^^ Identifier { lexeme: "add_function", span: 9..21 }
-                     ^ LeftParen { lexeme: "(", span: 21..22 }
-                      ^ Identifier { lexeme: "x", span: 22..23 }
-                       ^ Colon { lexeme: ":", span: 23..24 }
-                         ^^^ Identifier { lexeme: "i32", span: 25..28 }
-                            ^ Comma { lexeme: ",", span: 28..29 }
-                              ^ Identifier { lexeme: "y", span: 30..31 }
-                               ^ Colon { lexeme: ":", span: 31..32 }
-                                 ^^^ Identifier { lexeme: "i32", span: 33..36 }
-                                    ^ RightParen { lexeme: ")", span: 36..37 }
-                                      ^^^ Identifier { lexeme: "i32", span: 38..41 }
-                                          ^ LeftBrace { lexeme: "(", span: 42..43 }
+public function add(x: i32, y: i32) i32 {
+^^^^^^ Identifier { lexeme: "public", span: 0..6 }
+       ^^^^^^^^ Function { lexeme: "function", span: 7..15 }
+                ^^^ Identifier { lexeme: "add", span: 16..19 }
+                   ^ LeftParen { lexeme: "(", span: 19..20 }
+                    ^ Identifier { lexeme: "x", span: 20..21 }
+                     ^ Colon { lexeme: ":", span: 21..22 }
+                       ^^^ Identifier { lexeme: "i32", span: 23..26 }
+                          ^ Comma { lexeme: ",", span: 26..27 }
+                            ^ Identifier { lexeme: "y", span: 28..29 }
+                             ^ Colon { lexeme: ":", span: 29..30 }
+                               ^^^ Identifier { lexeme: "i32", span: 31..34 }
+                                  ^ RightParen { lexeme: ")", span: 34..35 }
+                                    ^^^ Identifier { lexeme: "i32", span: 36..39 }
+                                        ^ LeftBrace { lexeme: "(", span: 40..41 }
     z : i32 = add x, y;
-    ^ Identifier { lexeme: "z", span: 48..49 }
-      ^ Colon { lexeme: ":", span: 50..51 }
-        ^^^ Identifier { lexeme: "i32", span: 52..55 }
-            ^ Equals { lexeme: "=", span: 56..57 }
-              ^^^ Add { lexeme: "add", span: 58..61 }
-                  ^ Identifier { lexeme: "x", span: 62..63 }
-                   ^ Comma { lexeme: ",", span: 63..64 }
-                     ^ Identifier { lexeme: "y", span: 65..66 }
-                      ^ Semicolon { lexeme: ";", span: 66..67 }
+    ^ Identifier { lexeme: "z", span: 46..47 }
+      ^ Colon { lexeme: ":", span: 48..49 }
+        ^^^ Identifier { lexeme: "i32", span: 50..53 }
+            ^ Equals { lexeme: "=", span: 54..55 }
+              ^^^ Identifier { lexeme: "add", span: 56..59 }
+                  ^ Identifier { lexeme: "x", span: 60..61 }
+                   ^ Comma { lexeme: ",", span: 61..62 }
+                     ^ Identifier { lexeme: "y", span: 63..64 }
+                      ^ Semicolon { lexeme: ";", span: 64..65 }
     ret z;
-    ^^^ Return { lexeme: "ret", span: 72..75 }
-        ^ Identifier { lexeme: "z", span: 76..77 }
-         ^ Semicolon { lexeme: ";", span: 77..78 }
+    ^^^ Return { lexeme: "ret", span: 70..73 }
+        ^ Identifier { lexeme: "z", span: 74..75 }
+         ^ Semicolon { lexeme: ";", span: 75..76 }
 }
-^ RightBrace { lexeme: ")", span: 79..80 }
+^ RightBrace { lexeme: ")", span: 77..78 }

@@ -3,10 +3,15 @@ mod lexer;
 mod parser;
 mod ssa;
 mod stream;
+mod target;
 
 fn main() {
     let src = include_str!("../snapshots/basic.bitbox");
     let tokens = lexer::lex(src);
-    let program = parser::Parser::new(tokens).parse();
-    println!("{:#?}", program);
+    let program = parser::Parser::new(tokens).parse().unwrap();
+    let module = target::wasm::Emitter::new(program).with_no_main().emit();
+    let bytes = module.to_bytes().unwrap();
+    eprintln!("{bytes:?}");
+    eprintln!("{:?}", &bytes[32 - 2..32 + 3]);
+    std::fs::write("junk/test.wasm", bytes).unwrap();
 }
