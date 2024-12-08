@@ -6,7 +6,7 @@ mod stream;
 mod target;
 
 fn main() {
-    let src = include_str!("../snapshots/basic.bitbox");
+    let src = include_str!("../snapshots/import_function.bitbox");
     let tokens = lexer::lex(src);
     let program = parser::Parser::new(tokens).parse().unwrap();
     let module = target::wasm::Emitter::new(program).with_no_main().emit();

@@ -1,9 +1,9 @@
-import core::write;
+import function core.write(u32, u32);
 
-const value_ptr : u32 = #"Hello World\n"#;
-const value_len : u32 = @getStringByteLength value_ptr;
+const value_ptr : *[13; u8] = #"Hello World\n"#;
+const value_len : u32 = @len value_ptr;
 
-public function main() i32 {
-    call write(value_ptr, value_len);
-    ret 1;
+public function main() s32 {
+    @call write(value_ptr, value_len);
+    @ret 1;
 }

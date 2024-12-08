@@ -39,6 +39,7 @@ tokens! {
     Builtin,
     Colon,
     Comma,
+    Dot,
     Equals,
     Identifier,
     InvalidToken,

@@ -2,7 +2,7 @@
 mod test;
 use crate::ast::{self, Identifier};
 use crate::lexer::token::{Span, Token};
-use crate::ssa;
+use crate::ssa::{self, IntoSsaType};
 use crate::stream::TokenStream;
 
 #[derive(Debug)]
@@ -27,6 +27,7 @@ impl Parser {
     }
 
     pub fn parse(&mut self) -> Result<ssa::Program, ParseError> {
+        let mut imports = vec![];
         let mut functions = vec![];
 
         while self.stream.is_not_at_end() {
@@ -36,11 +37,16 @@ impl Parser {
             } else {
                 ssa::Visibility::Private
             };
-            let function = self.parse_function(visibility)?;
-            functions.push(function);
+            if self.peek_is_identifier("function") {
+                let function = self.parse_function(visibility)?;
+                functions.push(function);
+            } else if self.peek_is_identifier("import") {
+                let import = self.parse_import()?;
+                imports.push(import);
+            }
         }
 
-        Ok(ssa::Program { functions })
+        Ok(ssa::Program { functions, imports })
     }
 
     fn consume<Expected>(&mut self) -> Result<Expected, ParseError>
@@ -96,7 +102,14 @@ impl Parser {
         self.consume_identifier("function")?;
         let func_name = self.consume::<ast::Identifier>()?;
         let params = self.parse_function_params()?;
-        let return_type = self.consume::<ast::Identifier>()?;
+        let return_type = self
+            .consume::<ast::Identifier>()?
+            .into_ssa_type()
+            .map_err(|ident| ParseError::UnexpectedToken {
+                expected: "Type".to_string(),
+                found: ident.get_lexeme(),
+                span: ident.get_span(),
+            })?;
         let blocks = self.parse_function_block()?;
 
         Ok(ssa::Function {
@@ -116,7 +129,14 @@ impl Parser {
         while self.stream.is_not_at_end() {
             let name = self.consume::<ast::Identifier>()?;
             self.consume::<ast::Colon>()?;
-            let ty = self.consume::<ast::Identifier>()?;
+            let ty = self
+                .consume::<ast::Identifier>()?
+                .into_ssa_type()
+                .map_err(|ident| ParseError::UnexpectedToken {
+                    expected: "Type".to_string(),
+                    found: ident.get_lexeme(),
+                    span: ident.get_span(),
+                })?;
 
             let param = ssa::Variable { name, ty, version };
             params.push(param);
@@ -168,6 +188,8 @@ impl Parser {
                 let instruction = self.parse_add_instruction(name, ty)?;
                 instructions.push(instruction);
                 continue;
+            } else if self.peek_is_builtin("@getStringByteLength") {
+                unimplemented!("@getStringByteLength");
             }
             todo!("unimplemented");
         }
@@ -185,6 +207,13 @@ impl Parser {
         ty: ast::Identifier,
     ) -> Result<ssa::Instruction, ParseError> {
         self.consume::<ast::Builtin>()?;
+        let ty = ty
+            .into_ssa_type()
+            .map_err(|ident| ParseError::UnexpectedToken {
+                expected: "Type".to_string(),
+                found: ident.get_lexeme(),
+                span: ident.get_span(),
+            })?;
         let var = ssa::Variable {
             name,
             ty,
@@ -204,5 +233,47 @@ impl Parser {
         }
         let tok = self.consume::<ast::Identifier>()?;
         Ok(ssa::Operand::Variable(tok))
+    }
+
+    fn parse_path(&mut self) -> Result<Vec<ast::Identifier>, ParseError> {
+        let mut path = vec![];
+        path.push(self.consume::<ast::Identifier>()?);
+        while self.stream.is_peek_a::<ast::Dot>() {
+            self.consume::<ast::Dot>()?;
+            path.push(self.consume::<ast::Identifier>()?);
+        }
+        Ok(path)
+    }
+
+    // fn parse_import_function_params(
+    //     &mut self,
+    // ) -> Result<Vec<ast::Identifier>, ParseError> {
+    //
+    // }
+
+    fn parse_import(&mut self) -> Result<ssa::Import, ParseError> {
+        todo!()
+        // self.consume_identifier("import")?;
+        // eprintln!("parsing import");
+        // let tok = self.consume::<ast::Identifier>()?;
+        // match tok.get_lexeme().as_str() {
+        //     "function" => {
+        //         let path = self.parse_path()?;
+        //         let params = self.parse_function_params()?;
+        //         let return_type = self.consume::<ast::Identifier>()?;
+        //         self.consume::<ast::Semicolon>()?;
+        //         eprintln!("parsing imporint function");
+        //         Ok(ssa::Import::Function(ssa::FunctionSpec {
+        //             path,
+        //             params,
+        //             return_type,
+        //         }))
+        //     }
+        //     _ => Err(ParseError::UnexpectedToken {
+        //         expected: "function".to_string(),
+        //         found: tok.get_lexeme(),
+        //         span: tok.get_span(),
+        //     }),
+        // }
     }
 }

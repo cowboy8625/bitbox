@@ -2,9 +2,55 @@
 use crate::ast;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Type {
+    Unsigned(u8),
+    Signed(u8),
+    Float(u8),
+    Pointer(Box<Type>),
+    Array(usize, Box<Type>),
+    Void,
+}
+
+pub trait IntoSsaType {
+    type Error;
+    fn into_ssa_type(&self) -> Result<Type, Self::Error>;
+}
+
+impl IntoSsaType for ast::Identifier {
+    type Error = Self;
+    fn into_ssa_type<'a>(&'a self) -> Result<Type, Self::Error> {
+        let parse_type = |input: &'a str| -> Option<(&'a str, &'a str)> {
+            let (prefix, rest) = input.split_at(1);
+            if prefix.chars().all(char::is_alphabetic) && rest.chars().all(char::is_numeric) {
+                Some((prefix, rest))
+            } else {
+                None
+            }
+        };
+        let Some((prefix, number)) = parse_type(&self.lexeme) else {
+            return Err(self.clone());
+        };
+        match prefix {
+            "u" => Ok(Type::Unsigned(number.parse().unwrap())),
+            "s" => Ok(Type::Signed(number.parse().unwrap())),
+            "f" => Ok(Type::Float(number.parse().unwrap())),
+            "*" => {
+                let ty = ast::Identifier {
+                    lexeme: number.to_string(),
+                    span: 0..0,
+                }
+                .into_ssa_type()?;
+                Ok(Type::Pointer(Box::new(ty)))
+            }
+            _ => Err(self.clone()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Variable {
     pub name: ast::Identifier,
-    pub ty: ast::Identifier,
+    pub ty: Type,
     pub version: usize,
 }
 
@@ -41,11 +87,24 @@ pub struct Function {
     pub visibility: Visibility,
     pub name: String,
     pub params: Vec<Variable>,
-    pub return_type: ast::Identifier,
+    pub return_type: Type,
     pub blocks: Vec<BasicBlock>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct FunctionSpec {
+    pub path: Vec<ast::Identifier>,
+    pub params: Vec<Variable>,
+    pub return_type: ast::Identifier,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Import {
+    Function(FunctionSpec),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Program {
+    pub imports: Vec<Import>,
     pub functions: Vec<Function>,
 }

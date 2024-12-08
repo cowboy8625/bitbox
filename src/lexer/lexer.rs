@@ -1,6 +1,6 @@
 use super::token;
 use crate::ast::{
-    BBString, Builtin, Colon, Comma, Equals, Identifier, InvalidToken, LeftBrace, LeftParen,
+    BBString, Builtin, Colon, Comma, Dot, Equals, Identifier, InvalidToken, LeftBrace, LeftParen,
     Number, Plus, RightBrace, RightParen, Semicolon,
 };
 
@@ -101,6 +101,7 @@ impl<'a> Lexer<'a> {
             Some(';') => Some(token::create::<Semicolon>(';', self.spanned())),
             Some(',') => Some(token::create::<Comma>(',', self.spanned())),
             Some('=') => Some(token::create::<Equals>('=', self.spanned())),
+            Some('.') => Some(token::create::<Dot>('.', self.spanned())),
             Some(value) => Some(token::create::<InvalidToken>(value, self.span.clone())),
             None => None,
         }
