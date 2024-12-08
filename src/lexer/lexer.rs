@@ -1,7 +1,8 @@
 use super::token;
 use crate::ast::{
-    BBString, Builtin, Colon, Comma, Dot, Equals, Identifier, InvalidToken, LeftBrace, LeftParen,
-    Number, Plus, RightBrace, RightParen, Semicolon,
+    BBString, Builtin, Colon, Comma, Directive, Dot, Equals, Identifier, InvalidToken, LeftBrace,
+    LeftBracket, LeftParen, Number, PathSeparator, Plus, RightBrace, RightBracket, RightParen,
+    Semicolon, Star,
 };
 
 type Token = Box<dyn token::Token>;
@@ -82,6 +83,15 @@ impl<'a> Lexer<'a> {
         token::create::<BBString>(lexeme, self.spanned())
     }
 
+    fn parse_directive(&mut self) -> Token {
+        let mut lexeme = String::from('.');
+        while let Some(value) = self.next_if(|value| value.is_ascii_alphanumeric() || value == '_')
+        {
+            lexeme.push(value);
+        }
+        token::create::<Directive>(lexeme, self.spanned())
+    }
+
     fn parse(&mut self) -> Option<Token> {
         match self.next() {
             Some(value @ '0'..='9') => Some(self.parse_number(value)),
@@ -91,17 +101,25 @@ impl<'a> Lexer<'a> {
                 self.parse()
             }
             Some('#') if self.chars.peek() == Some(&'"') => Some(self.parse_string()),
+            Some('.') if self.chars.peek() != Some(&' ') => Some(self.parse_directive()),
+            Some(':') if self.chars.peek() == Some(&':') => {
+                self.next();
+                Some(token::create::<PathSeparator>("::", self.spanned()))
+            }
             Some('@') => Some(self.parse_builtin()),
             Some('+') => Some(token::create::<Plus>('+', self.spanned())),
             Some('(') => Some(token::create::<LeftParen>('(', self.spanned())),
             Some(')') => Some(token::create::<RightParen>(')', self.spanned())),
             Some('{') => Some(token::create::<LeftBrace>('(', self.spanned())),
             Some('}') => Some(token::create::<RightBrace>(')', self.spanned())),
+            Some('[') => Some(token::create::<LeftBracket>('[', self.spanned())),
+            Some(']') => Some(token::create::<RightBracket>(']', self.spanned())),
             Some(':') => Some(token::create::<Colon>(':', self.spanned())),
             Some(';') => Some(token::create::<Semicolon>(';', self.spanned())),
             Some(',') => Some(token::create::<Comma>(',', self.spanned())),
             Some('=') => Some(token::create::<Equals>('=', self.spanned())),
             Some('.') => Some(token::create::<Dot>('.', self.spanned())),
+            Some('*') => Some(token::create::<Star>('*', self.spanned())),
             Some(value) => Some(token::create::<InvalidToken>(value, self.span.clone())),
             None => None,
         }

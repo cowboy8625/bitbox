@@ -11,5 +11,6 @@ fn main() {
     let program = parser::Parser::new(tokens).parse().unwrap();
     let module = target::wasm::Emitter::new(program).with_no_main().emit();
     let bytes = module.to_bytes().unwrap();
+    std::fs::create_dir_all("junk").unwrap();
     std::fs::write("junk/test.wasm", bytes).unwrap();
 }

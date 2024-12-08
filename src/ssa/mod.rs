@@ -27,6 +27,9 @@ impl IntoSsaType for ast::Identifier {
                 None
             }
         };
+        if self.lexeme.as_str() == "void" {
+            return Ok(Type::Void);
+        }
         let Some((prefix, number)) = parse_type(&self.lexeme) else {
             return Err(self.clone());
         };
@@ -59,6 +62,7 @@ pub enum Instruction {
     Assign(Variable, Operand), // x: type = 1
     Add(Variable, Operand, Operand),
     Return(Operand),
+    Call(ast::Identifier, Vec<Operand>),
     Phi(Variable, Vec<(Variable, usize)>),
 }
 
@@ -94,8 +98,8 @@ pub struct Function {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FunctionSpec {
     pub path: Vec<ast::Identifier>,
-    pub params: Vec<Variable>,
-    pub return_type: ast::Identifier,
+    pub params: Vec<Type>,
+    pub return_type: Type,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -104,7 +108,26 @@ pub enum Import {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Directive {
+    Len(ast::Identifier),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum ConstantValue {
+    String(String),
+    Directive(Directive),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Constant {
+    pub name: ast::Identifier,
+    pub ty: Type,
+    pub value: ConstantValue,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Program {
     pub imports: Vec<Import>,
+    pub constants: Vec<Constant>,
     pub functions: Vec<Function>,
 }

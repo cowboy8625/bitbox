@@ -66,6 +66,15 @@ impl Emitter {
                 wasm_block.push(Instruction::Return);
             }
             ssa::Instruction::Phi(_variable, _vec) => todo!(),
+            ssa::Instruction::Call(name, arguments) => {
+                for argument in arguments.iter() {
+                    self.compile_operand(wasm_block, argument, params);
+                }
+                let Some(id) = self.module.get_function_id(&name.lexeme) else {
+                    panic!("Unknown Function {:?}", name);
+                };
+                wasm_block.push(Instruction::Call(id));
+            }
         }
     }
 
