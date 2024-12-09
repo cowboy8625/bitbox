@@ -107,7 +107,7 @@ impl Block {
 
         // Byte for local param count
         length += 1;
-        length += self.locals.len() * 2;
+        length += self.local_type_info.len() * 2;
 
         // Byte for 0x0B end of block
         length += 1;
