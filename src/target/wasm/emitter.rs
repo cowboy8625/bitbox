@@ -145,6 +145,24 @@ impl Emitter {
         }
     }
 
+    pub fn compile_import_in_module(&mut self) {
+        for import in self.program.imports.iter() {
+            match import {
+                ssa::Import::Function(_) => todo!(),
+            }
+        }
+    }
+
+    pub fn compile_constant_in_module(&mut self) {
+        for constant in self.program.constants.iter() {
+            let ssa::Constant { name, ty, value } = constant;
+            match value {
+                ssa::ConstantValue::String(_) => todo!(),
+                ssa::ConstantValue::Directive(directive) => todo!(),
+            }
+        }
+    }
+
     pub fn emit(mut self) -> Module {
         // self.module.add_memory(Page::WithNoMinimun(1));
         // self.module.import(
@@ -155,7 +173,9 @@ impl Emitter {
         //         .with_param(ValueType::Data(DataType::I32))
         //         .with_result(DataType::I32),
         // );
-        //
+
+        self.compile_import_in_module();
+        self.compile_constant_in_module();
         self.compile_function_in_module();
 
         if !self.no_main {
