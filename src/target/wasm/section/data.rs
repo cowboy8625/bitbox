@@ -3,7 +3,7 @@ use anyhow::Result;
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Data {
-    data: Vec<Segment>,
+    pub data: Vec<Segment>,
 }
 
 impl Data {
@@ -13,21 +13,43 @@ impl Data {
         self.data.push(segment);
     }
 
+    pub fn get_segment_by_name(&self, name: impl Into<String>) -> Option<&Segment> {
+        let name = name.into();
+        self.data.iter().find(|segment| segment.name == name)
+    }
+
     pub fn with(mut self, segment: Segment) -> Self {
         self.data.push(segment);
         self
     }
 
-    pub fn push_data(&mut self, data: Vec<u8>) -> u32 {
-        match self.data.last_mut() {
-            Some(segment) => segment.push_data(data),
-            None => {
-                let mut segment = Segment::default();
-                segment.data.extend(data);
-                self.data.push(segment);
-                0
-            }
+    // pub fn push_data(&mut self, name: impl Into<String>, data: Vec<u8>) -> u32 {
+    //     let name = name.into();
+    //     match self.data.last_mut() {
+    //         Some(segment) => segment.push_data(data),
+    //         None => {
+    //             let mut segment = Segment::default();
+    //             segment.data.extend(data);
+    //             self.data.push(segment);
+    //             0
+    //         }
+    //     }
+    // }
+
+    pub fn get_id(&self, name: impl Into<String>) -> Option<u32> {
+        let name = name.into();
+        self.data
+            .iter()
+            .position(|segment| segment.name == name)
+            .map(|id| id as u32)
+    }
+
+    pub fn len(&self) -> usize {
+        let mut length = 0;
+        for segment in &self.data {
+            length += segment.data.len();
         }
+        length
     }
 
     pub fn to_bytes(&self) -> Result<Vec<u8>> {
@@ -51,12 +73,18 @@ impl Data {
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Segment {
-    offset: u32,
-    instructions: Vec<Instruction>,
-    data: Vec<u8>,
+    pub name: String,
+    pub offset: u32,
+    pub instructions: Vec<Instruction>,
+    pub data: Vec<u8>,
 }
 
 impl Segment {
+    pub fn with_name(mut self, name: impl Into<String>) -> Self {
+        self.name = name.into();
+        self
+    }
+
     pub fn with_offset(mut self, offset: u32) -> Self {
         self.offset = offset;
         self
@@ -114,6 +142,7 @@ mod tests {
     #[test]
     fn test_data() {
         let segment = Segment::default()
+            .with_name("string")
             .with_instruction(Instruction::I32Const(1))
             .with_data("abc".as_bytes().to_vec());
         let data = Data::default().with(segment);

@@ -97,7 +97,8 @@ pub struct Function {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FunctionSpec {
-    pub path: Vec<ast::Identifier>,
+    pub module_name: ast::Identifier,
+    pub name: ast::Identifier,
     pub params: Vec<Type>,
     pub return_type: Type,
 }

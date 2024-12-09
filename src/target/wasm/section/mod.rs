@@ -1,3 +1,4 @@
+// https://github.com/sunfishcode/wasm-reference-manual/blob/master/WebAssembly.md#global-description
 // Id | Section
 // 0  | Custom Section
 // 1  | Type Section
@@ -17,6 +18,7 @@ pub mod code;
 pub mod data;
 pub mod export;
 pub mod function;
+pub mod global;
 pub mod header;
 pub mod import;
 pub mod memory;
@@ -30,6 +32,7 @@ use code::Code;
 use data::Data;
 use export::Export;
 use function::Function;
+use global::Global;
 use header::Header as Custom;
 use import::Import;
 use memory::Memory;
@@ -67,7 +70,7 @@ pub enum Section {
     Function(Function), // 0x03: Function section with function indices
     // Table(Vec<u8>),  // 0x04: Table section with table definitions
     Memory(Memory),     // 0x05: Memory section with memory definitions
-    // Global(Vec<u8>), // 0x06: Global section with global variables
+    Global(Global),    // 0x06: Global section with global variables
     Export(Export),     // 0x07: Export section with exported functions, tables, etc.
     Start(Start),       // 0x08: Start section with the index of the start function
     // Element(Vec<u8>),// 0x09: Element section with function table elements
@@ -83,6 +86,7 @@ impl Section {
             Section::Type(data) => data.to_bytes(),
             Section::Function(data) => data.to_bytes(),
             Section::Memory(data) => data.to_bytes(),
+            Section::Global(data) => data.to_bytes(),
             Section::Export(data) => data.to_bytes(),
             Section::Start(data) => data.to_bytes(),
             Section::Code(data) => data.to_bytes(),

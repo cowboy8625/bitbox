@@ -5,11 +5,12 @@ use super::{
         data::{Data, Segment},
         export::{Export, ExportEntry, ExportType},
         function::Function,
+        global::{Global, GlobalEntry, Intializer},
         header::Header,
         import::{Import, ImportEntry, ImportType},
         memory::{Memory, Page},
         start::Start,
-        Section,
+        DataType, Section,
         _type::{FunctionType, Kind, Type, ValueType},
     },
 };
@@ -23,6 +24,7 @@ pub struct Module {
     pub imports: Option<Import>,
     pub function: Option<Function>,
     pub memory: Option<Memory>,
+    pub globals: Option<Global>,
     pub export: Option<Export>,
     pub start: Option<Start>,
     pub code: Option<Code>,
@@ -31,6 +33,28 @@ pub struct Module {
 }
 
 impl Module {
+    pub fn get_data_segment_by_id(&self, id: usize) -> Option<&Segment> {
+        self.data.as_ref().and_then(|data| data.data.get(id))
+    }
+    pub fn add_global(&mut self, entry: GlobalEntry) {
+        match self.globals.as_mut() {
+            Some(global) => global.push(entry),
+            None => {
+                let mut global = Global::default();
+                global.push(entry);
+                self.globals = Some(global);
+            }
+        }
+    }
+
+    pub fn get_global(&self, name: &str) -> Option<(usize, &GlobalEntry)> {
+        self.globals.as_ref().and_then(|global| global.get(name))
+    }
+
+    pub fn get_global_index(&self, name: &str) -> Option<usize> {
+        self.get_global(name).map(|(index, _)| index)
+    }
+
     pub fn get_main_function_id(&self) -> Option<u32> {
         self.get_function_id("main")
     }
@@ -62,7 +86,9 @@ impl Module {
 
     pub fn add_data(&mut self, segment: Segment) {
         match self.data.as_mut() {
-            Some(data) => data.push(segment),
+            Some(data) => {
+                data.push(segment);
+            }
             None => {
                 let mut data = Data::default();
                 data.push(segment);
@@ -71,12 +97,25 @@ impl Module {
         }
     }
 
-    pub fn add_string(&mut self, string: &str) -> u32 {
+    pub fn add_string(&mut self, name: impl Into<String>, string: &str) -> i32 {
         match self.data.as_mut() {
-            Some(data) => data.push_data(string.as_bytes().to_vec()),
+            Some(data) => {
+                let last = data.data.last().unwrap();
+                let offset = last.data.len() as i32;
+                let segment = Segment::default()
+                    .with_name(name)
+                    .with_instruction(Instruction::I32Const(offset))
+                    .with_data(string.as_bytes().to_vec());
+                data.push(segment);
+                data.len() as i32
+            }
             None => {
                 let mut data = Data::default();
-                data.push_data(string.as_bytes().to_vec());
+                let segment = Segment::default()
+                    .with_name(name)
+                    .with_instruction(Instruction::I32Const(0))
+                    .with_data(string.as_bytes().to_vec());
+                data.push(segment);
                 self.data = Some(data);
                 0
             }
@@ -164,7 +203,7 @@ impl Module {
                 ImportType::Func
             }
         };
-        let entry = ImportEntry::new(module, name, ImportType::Func);
+        let entry = ImportEntry::new(module, name, entry_type);
         match self.imports.as_mut() {
             Some(imports) => {
                 imports.push(entry);

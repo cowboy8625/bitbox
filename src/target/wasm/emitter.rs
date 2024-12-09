@@ -15,11 +15,12 @@ use super::{
         start::Start,
         DataType, Section,
         _type::{FunctionType, Type, ValueType},
+        global::GlobalEntry,
     },
 };
 
 use super::ToDataType;
-use crate::ssa;
+use crate::{ssa, target::wasm::section::global::Intializer};
 
 #[derive(Debug)]
 pub struct Emitter {
@@ -86,15 +87,20 @@ impl Emitter {
     ) {
         match operand {
             ssa::Operand::Variable(variable) => {
-                let Some(index) = params
+                if let Some(index) = params
                     .iter()
                     .position(|param| param.name.lexeme == *variable.lexeme)
                     .or(wasm_block.get_local_index(&variable.lexeme, params.len()))
-                else {
-                    panic!("Variable {:?} is not declare", variable);
-                };
-                let instruction = Instruction::LocalGet(index as u32);
-                wasm_block.push(instruction);
+                {
+                    let instruction = Instruction::LocalGet(index as u32);
+                    wasm_block.push(instruction);
+                    return;
+                } else if let Some(index) = self.module.get_global_index(&variable.lexeme) {
+                    let instruction = Instruction::GlobalGet(index as u32);
+                    wasm_block.push(instruction);
+                    return;
+                }
+                panic!("Variable {:?} is not declare", variable);
             }
             ssa::Operand::Constant(number) => {
                 // NOTE: unwrapping is ok here because we know the number is a number
@@ -148,7 +154,21 @@ impl Emitter {
     pub fn compile_import_in_module(&mut self) {
         for import in self.program.imports.iter() {
             match import {
-                ssa::Import::Function(_) => todo!(),
+                ssa::Import::Function(spec) => {
+                    let ssa::FunctionSpec {
+                        module_name,
+                        name,
+                        params,
+                        return_type,
+                    } = spec;
+                    let func = params
+                        .into_iter()
+                        .fold(FunctionType::default(), |mut acc, param| {
+                            acc.with_param(ValueType::Data(param.to_data_type()))
+                        });
+                    let func = func.with_result(return_type.to_data_type());
+                    self.module.import(&module_name.lexeme, &name.lexeme, func);
+                }
             }
         }
     }
@@ -157,8 +177,32 @@ impl Emitter {
         for constant in self.program.constants.iter() {
             let ssa::Constant { name, ty, value } = constant;
             match value {
-                ssa::ConstantValue::String(_) => todo!(),
-                ssa::ConstantValue::Directive(directive) => todo!(),
+                ssa::ConstantValue::String(string) => {
+                    let ptr = self.module.add_string(&name.lexeme, string);
+                    let entry = GlobalEntry::new_i32(&name.lexeme, false, ptr);
+                    self.module.add_global(entry);
+                }
+                ssa::ConstantValue::Directive(directive) => match directive {
+                    ssa::Directive::Len(identifier) => {
+                        let Some((_, entry)) = self.module.get_global(&identifier.lexeme) else {
+                            panic!("Unknown Variable while compiling constant {:?}", identifier);
+                        };
+                        let Intializer::I32Const(id) = entry.intializer else {
+                            panic!("Not I32Const while compiling constant {:?}", identifier);
+                        };
+                        let Some(segment) = self.module.get_data_segment_by_id(id as usize) else {
+                            panic!("Not I32Const while compiling constant {:?}", identifier);
+                        };
+
+                        if segment.name != identifier.lexeme {
+                            panic!("Not I32Const while compiling constant {:?}", identifier);
+                        }
+
+                        let entry =
+                            GlobalEntry::new_i32(&name.lexeme, false, segment.data.len() as i32);
+                        self.module.add_global(entry);
+                    }
+                },
             }
         }
     }

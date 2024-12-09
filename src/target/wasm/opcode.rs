@@ -20,8 +20,8 @@ pub enum Instruction {
     LocalGet(u32),
     LocalSet(u32),
     // LocalTee(u32),
-    // GlobalGet(u32),
-    // GlobalSet(u32),
+    GlobalGet(u32),
+    GlobalSet(u32),
 
     // Arithmetic instructions
     /// 0x6a is the opcode for i32.add
@@ -80,6 +80,16 @@ impl Instruction {
             }
             Self::LocalSet(index) => {
                 let mut bytes = vec![0x21]; // 0x21 is the opcode for local.set
+                leb128::write::unsigned(&mut bytes, *index as u64)?;
+                Ok(bytes)
+            }
+            Self::GlobalGet(index) => {
+                let mut bytes = vec![0x23]; // 0x23 is the opcode for global.get
+                leb128::write::unsigned(&mut bytes, *index as u64)?;
+                Ok(bytes)
+            }
+            Self::GlobalSet(index) => {
+                let mut bytes = vec![0x24]; // 0x24 is the opcode for global.set
                 leb128::write::unsigned(&mut bytes, *index as u64)?;
                 Ok(bytes)
             }

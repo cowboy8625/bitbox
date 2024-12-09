@@ -250,16 +250,6 @@ impl Parser {
         Ok(ssa::Operand::Variable(tok))
     }
 
-    fn parse_path(&mut self) -> Result<Vec<ast::Identifier>, ParseError> {
-        let mut path = vec![];
-        path.push(self.consume::<ast::Identifier>()?);
-        while self.stream.is_peek_a::<ast::PathSeparator>() {
-            self.consume::<ast::PathSeparator>()?;
-            path.push(self.consume::<ast::Identifier>()?);
-        }
-        Ok(path)
-    }
-
     fn parse_import_function_params(&mut self) -> Result<Vec<ssa::Type>, ParseError> {
         let mut params = vec![];
         self.consume::<ast::LeftParen>()?;
@@ -280,7 +270,9 @@ impl Parser {
         let tok = self.consume::<ast::Identifier>()?;
         match tok.get_lexeme().as_str() {
             "function" => {
-                let path = self.parse_path()?;
+                let module_name = self.consume::<ast::Identifier>()?;
+                self.consume::<ast::PathSeparator>()?;
+                let name = self.consume::<ast::Identifier>()?;
                 let params = self.parse_import_function_params()?;
                 let return_type =
                     self.consume::<ast::Identifier>()?
@@ -292,7 +284,8 @@ impl Parser {
                         })?;
                 self.consume::<ast::Semicolon>()?;
                 Ok(ssa::Import::Function(ssa::FunctionSpec {
-                    path,
+                    module_name,
+                    name,
                     params,
                     return_type,
                 }))
