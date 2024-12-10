@@ -1,4 +1,4 @@
-import function core::write(s32, s32) void;
+import function core::write(s32, s32) s32;
 
 const value_ptr : *[13; u8] = #"Hello World\n"#;
 const value_len : u32 = .len value_ptr;

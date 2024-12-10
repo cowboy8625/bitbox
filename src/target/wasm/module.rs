@@ -246,6 +246,9 @@ impl Module {
         if let Some(memory) = &self.memory {
             bytes.extend(memory.to_bytes()?);
         }
+        if let Some(global) = &self.globals {
+            bytes.extend(global.to_bytes()?);
+        }
         if let Some(export) = &self.export {
             bytes.extend(export.to_bytes()?);
         }

@@ -53,12 +53,11 @@ macro_rules! into_section {
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum DataType {
+    #[default]
     I32 = 0x7F,
     I64 = 0x7E,
     F32 = 0x7D,
     F64 = 0x7C,
-    #[default]
-    VOID = 0x40,
 }
 
 #[rustfmt::skip]

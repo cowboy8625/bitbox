@@ -68,7 +68,7 @@ mod tests {
 
     #[test]
     fn test_memory() -> Result<()> {
-        let mut section = Memory::default().with(Page::WithNoMinimun(1));
+        let section = Memory::default().with(Page::WithNoMinimun(1));
         let bytes = section.to_bytes()?;
         assert_eq!(bytes, vec![0x05, 0x03, 0x01, 0x00, 0x01]);
         Ok(())

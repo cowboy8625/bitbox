@@ -52,7 +52,10 @@ impl Emitter {
         match instruction {
             ssa::Instruction::Assign(_variable, _operand) => todo!(),
             ssa::Instruction::Add(variable, lhs, rhs) => {
-                wasm_block.push_local(&variable.name.lexeme, variable.ty.to_data_type());
+                let Ok(data_type) = variable.ty.to_data_type() else {
+                    panic!("Unknown Type {:?}", variable.ty);
+                };
+                wasm_block.push_local(&variable.name.lexeme, data_type);
                 self.compile_operand(wasm_block, lhs, params);
                 self.compile_operand(wasm_block, rhs, params);
                 wasm_block.push(Instruction::I32Add);
@@ -120,7 +123,7 @@ impl Emitter {
     }
 
     fn compile_function_in_module(&mut self) {
-        for (idx, func) in self.program.functions.clone().into_iter().enumerate() {
+        for func in self.program.functions.clone().into_iter() {
             let ssa::Function {
                 visibility,
                 name,
@@ -129,25 +132,34 @@ impl Emitter {
                 blocks,
             } = func;
 
-            if let ssa::Visibility::Public = visibility {
-                self.module
-                    .export(ExportEntry::new(&name, ExportType::Func, idx as u32));
-            }
-
             let mut func_type = FunctionType::default();
             for var in params.iter() {
-                let value_type =
-                    ValueType::WithName(var.name.lexeme.to_string(), var.ty.to_data_type());
+                let Ok(data_type) = var.ty.to_data_type() else {
+                    panic!("Unknown Type {:?}", var.ty);
+                };
+                let value_type = ValueType::WithName(var.name.lexeme.to_string(), data_type);
                 func_type = func_type.with_param(value_type);
             }
 
-            func_type = func_type.with_result(return_type.to_data_type());
+            func_type = if let Ok(return_type) = return_type.to_data_type() {
+                func_type.with_result(return_type)
+            } else {
+                func_type
+            };
 
             let mut block = self.compile_basic_block(&blocks, &params);
             //block_instructions.push(Instruction::Drop);
             // let block = Block::new(block_instructions);
 
-            self.module.add_function(name, func_type, block);
+            self.module.add_function(&name, func_type, block);
+
+            if let ssa::Visibility::Public = visibility {
+                let Some(idx) = self.module.get_function_id(&name) else {
+                    panic!("Unknown Function {:?}", name);
+                };
+                self.module
+                    .export(ExportEntry::new(&name, ExportType::Func, idx as u32));
+            }
         }
     }
 
@@ -161,12 +173,21 @@ impl Emitter {
                         params,
                         return_type,
                     } = spec;
-                    let func = params
-                        .into_iter()
-                        .fold(FunctionType::default(), |mut acc, param| {
-                            acc.with_param(ValueType::Data(param.to_data_type()))
-                        });
-                    let func = func.with_result(return_type.to_data_type());
+                    let func =
+                        params
+                            .into_iter()
+                            .fold(FunctionType::default(), |mut acc, param| {
+                                let Ok(data_type) = param.to_data_type() else {
+                                    panic!("Unknown Type {:?}", param);
+                                };
+                                acc.with_param(ValueType::Data(data_type))
+                            });
+
+                    let func = if let Ok(return_type) = return_type.to_data_type() {
+                        func.with_result(return_type)
+                    } else {
+                        func
+                    };
                     self.module.import(&module_name.lexeme, &name.lexeme, func);
                 }
             }
@@ -208,7 +229,11 @@ impl Emitter {
     }
 
     pub fn emit(mut self) -> Module {
-        // self.module.add_memory(Page::WithNoMinimun(1));
+        self.module.add_memory(Page::WithNoMinimun(1));
+        // self.module
+        //     .add_global(GlobalEntry::new_i32("memory", true, 0));
+        self.module
+            .export(ExportEntry::new("memory", ExportType::Memory, 0));
         // self.module.import(
         //     "core",
         //     "write",
@@ -222,12 +247,12 @@ impl Emitter {
         self.compile_constant_in_module();
         self.compile_function_in_module();
 
-        if !self.no_main {
-            let Some(main_id) = self.module.get_main_function_id() else {
-                panic!("No main function found");
-            };
-            self.module.set_start(main_id);
-        }
+        // if self.no_main {
+        //     let Some(main_id) = self.module.get_main_function_id() else {
+        //         panic!("No main function found");
+        //     };
+        //     self.module.set_start(main_id);
+        // }
 
         self.module
     }

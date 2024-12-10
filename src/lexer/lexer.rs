@@ -80,7 +80,7 @@ impl<'a> Lexer<'a> {
                 break;
             }
         }
-        token::create::<BBString>(lexeme, self.spanned())
+        token::create::<BBString>(lexeme[2..lexeme.len() - 2].to_string(), self.spanned())
     }
 
     fn parse_directive(&mut self) -> Token {

@@ -18,7 +18,8 @@ impl Global {
     }
 
     pub fn len(&self) -> usize {
-        let mut length = 0;
+        // one for vec length
+        let mut length = 1;
         for global in &self.globals {
             length += global.to_bytes().unwrap().len();
         }
@@ -38,6 +39,8 @@ impl Global {
         // Add 1 for the count;
         let length = self.len();
         leb128::write::unsigned(&mut bytes, length as u64)?;
+
+        leb128::write::unsigned(&mut bytes, self.globals.len() as u64)?;
         for entry in &self.globals {
             bytes.extend(entry.to_bytes()?);
         }
@@ -66,9 +69,7 @@ impl Intializer {
     }
 
     pub fn to_bytes(&self) -> Result<Vec<u8>> {
-        let mut bytes = Vec::new();
-        bytes.extend(self.as_instruction().to_bytes()?);
-        Ok(bytes)
+        Ok(self.as_instruction().to_bytes()?)
     }
 }
 
@@ -122,6 +123,7 @@ impl GlobalEntry {
         bytes.push(self.ty as u8);
         bytes.push(self.mutable as u8);
         bytes.extend(self.intializer.to_bytes()?);
+        bytes.push(0x0B);
         Ok(bytes)
     }
 }
