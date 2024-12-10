@@ -8,15 +8,15 @@ mod stream;
 mod target;
 
 fn main() {
-    let backup = include_str!("../snapshots/import_function.bitbox");
-    let src = args()
-        .nth(1)
-        .and_then(|s| std::fs::read_to_string(s).ok())
-        .unwrap_or(backup.to_string());
+    let Some(filename) = args().nth(1) else {
+        eprintln!("usage: bitbox <filename>");
+        std::process::exit(1);
+    };
+    let src = std::fs::read_to_string(&filename).expect("failed to read file");
     let tokens = lexer::lex(&src);
     let program = parser::Parser::new(tokens).parse().unwrap();
     let module = target::wasm::Emitter::new(program).with_no_main().emit();
     let bytes = module.to_bytes().unwrap();
-    std::fs::create_dir_all("junk").unwrap();
-    std::fs::write("junk/test.wasm", bytes).unwrap();
+    let (binary_name, _) = filename.split_once('.').unwrap();
+    std::fs::write(format!("{}.wasm", binary_name), bytes).unwrap();
 }
