@@ -177,13 +177,6 @@ impl Parser {
                 instructions.push(ssa::Instruction::Return(value));
                 self.consume::<ast::Semicolon>()?;
                 continue;
-            } else if self.peek_is_builtin("@call") {
-                self.consume::<ast::Builtin>()?;
-                let name = self.consume::<ast::Identifier>()?;
-                let arguments = self.parse_arguments()?;
-                self.consume::<ast::Semicolon>()?;
-                instructions.push(ssa::Instruction::Call(name, arguments));
-                continue;
             } else if self.peek_is_identifier("if") {
                 todo!();
             }
@@ -197,6 +190,18 @@ impl Parser {
             if self.peek_is_builtin("@add") {
                 let instruction = self.parse_add_instruction(name, ty)?;
                 instructions.push(instruction);
+                continue;
+            } else if self.peek_is_builtin("@call") {
+                let var = ssa::Variable {
+                    name,
+                    ty,
+                    version: 0,
+                };
+                self.consume::<ast::Builtin>()?;
+                let func_name = self.consume::<ast::Identifier>()?;
+                let arguments = self.parse_arguments()?;
+                self.consume::<ast::Semicolon>()?;
+                instructions.push(ssa::Instruction::Call(var, func_name, arguments));
                 continue;
             }
             todo!("unimplemented");

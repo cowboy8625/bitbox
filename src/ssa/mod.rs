@@ -62,7 +62,7 @@ pub enum Instruction {
     Assign(Variable, Operand), // x: type = 1
     Add(Variable, Operand, Operand),
     Return(Operand),
-    Call(ast::Identifier, Vec<Operand>),
+    Call(Variable, ast::Identifier, Vec<Operand>),
     Phi(Variable, Vec<(Variable, usize)>),
 }
 

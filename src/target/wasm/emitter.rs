@@ -70,7 +70,11 @@ impl Emitter {
                 wasm_block.push(Instruction::Return);
             }
             ssa::Instruction::Phi(_variable, _vec) => todo!(),
-            ssa::Instruction::Call(name, arguments) => {
+            ssa::Instruction::Call(variable, name, arguments) => {
+                let Ok(data_type) = variable.ty.to_data_type() else {
+                    panic!("Unknown Type {:?}", variable.ty);
+                };
+                wasm_block.push_local(&variable.name.lexeme, data_type);
                 for argument in arguments.iter() {
                     self.compile_operand(wasm_block, argument, params);
                 }
@@ -78,6 +82,11 @@ impl Emitter {
                     panic!("Unknown Function {:?}", name);
                 };
                 wasm_block.push(Instruction::Call(id));
+                let Some(index) = wasm_block.get_local_index(&variable.name.lexeme, params.len())
+                else {
+                    panic!("Unknown Variable {:?}", variable);
+                };
+                wasm_block.push(Instruction::LocalSet(index as u32));
             }
         }
     }
@@ -230,18 +239,8 @@ impl Emitter {
 
     pub fn emit(mut self) -> Module {
         self.module.add_memory(Page::WithNoMinimun(1));
-        // self.module
-        //     .add_global(GlobalEntry::new_i32("memory", true, 0));
         self.module
             .export(ExportEntry::new("memory", ExportType::Memory, 0));
-        // self.module.import(
-        //     "core",
-        //     "write",
-        //     FunctionType::default()
-        //         .with_param(ValueType::Data(DataType::I32))
-        //         .with_param(ValueType::Data(DataType::I32))
-        //         .with_result(DataType::I32),
-        // );
 
         self.compile_import_in_module();
         self.compile_constant_in_module();
