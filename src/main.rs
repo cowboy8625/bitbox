@@ -9,7 +9,10 @@ mod target;
 
 fn main() {
     let backup = include_str!("../snapshots/import_function.bitbox");
-    let src = args().nth(1).unwrap_or(backup.to_string());
+    let src = args()
+        .nth(1)
+        .and_then(|s| std::fs::read_to_string(s).ok())
+        .unwrap_or(backup.to_string());
     let tokens = lexer::lex(&src);
     let program = parser::Parser::new(tokens).parse().unwrap();
     let module = target::wasm::Emitter::new(program).with_no_main().emit();
