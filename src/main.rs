@@ -1,3 +1,5 @@
+use std::env::args;
+
 mod ast;
 mod lexer;
 mod parser;
@@ -6,8 +8,9 @@ mod stream;
 mod target;
 
 fn main() {
-    let src = include_str!("../snapshots/import_function.bitbox");
-    let tokens = lexer::lex(src);
+    let backup = include_str!("../snapshots/import_function.bitbox");
+    let src = args().nth(1).unwrap_or(backup.to_string());
+    let tokens = lexer::lex(&src);
     let program = parser::Parser::new(tokens).parse().unwrap();
     let module = target::wasm::Emitter::new(program).with_no_main().emit();
     let bytes = module.to_bytes().unwrap();
