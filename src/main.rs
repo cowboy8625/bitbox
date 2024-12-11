@@ -38,7 +38,6 @@ fn print_error(err: parser::ParseError, src: &str, filename: &str) {
             let line = src[..span.start].chars().filter(|c| *c == '\n').count();
             let line = line + 1;
             let column = span.start - src[..span.start].rfind('\n').unwrap();
-            eprintln!("{:?}", span);
             eprintln!(
                 "{}:{}:{}: expected {}, found {}",
                 filename, line, column, expected, found
@@ -46,8 +45,9 @@ fn print_error(err: parser::ParseError, src: &str, filename: &str) {
 
             let src_line = src.lines().nth(line - 1).unwrap();
             eprintln!("{line} | {}", src_line);
-            let caret = " ".repeat(column) + "^";
-            eprintln!("    {}", caret);
+            let spacing = " ".repeat(column);
+            let caret = spacing + "\x1b[1;31m" + &("^".repeat(span.len())) + "\x1b[0m";
+            eprintln!("   {}", caret);
         }
         UnexpectedEndOfStream => eprintln!("Unexpected end of stream"),
     }

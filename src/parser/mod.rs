@@ -213,10 +213,14 @@ impl Parser {
             return Ok(Some(instruction));
         }
 
+        let Some(token) = self.stream.peek_blind() else {
+            return Ok(None);
+        };
+
         Err(ParseError::UnexpectedToken {
             expected: "valid instruction".to_string(),
-            found: name.lexeme,
-            span: name.span,
+            found: token.get_lexeme(),
+            span: token.get_span(),
         })
     }
 
