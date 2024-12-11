@@ -156,7 +156,7 @@ impl Parser {
     fn parse_function_block(&mut self) -> Result<Vec<ssa::BasicBlock>, ParseError> {
         let mut blocks = vec![];
         self.consume::<ast::LeftBrace>()?;
-        while self.stream.is_not_at_end() {
+        while self.stream.is_not_at_end() && !self.stream.is_peek_a::<ast::RightBrace>() {
             let block = self.parse_basic_block()?;
             blocks.push(block);
         }
@@ -167,16 +167,12 @@ impl Parser {
     fn parse_basic_block(&mut self) -> Result<ssa::BasicBlock, ParseError> {
         let mut instructions = vec![];
         while self.stream.is_not_at_end() {
-            if self.stream.is_peek_a::<ast::RightBrace>() {
-                break;
-            }
-
             if self.peek_is_builtin("@ret") {
                 self.consume::<ast::Builtin>()?;
                 let value = self.parse_operand()?;
                 instructions.push(ssa::Instruction::Return(value));
                 self.consume::<ast::Semicolon>()?;
-                continue;
+                break;
             } else if self.peek_is_identifier("if") {
                 todo!();
             }
@@ -206,6 +202,7 @@ impl Parser {
             }
             todo!("unimplemented");
         }
+
         Ok(ssa::BasicBlock {
             id: 0,
             instructions,
