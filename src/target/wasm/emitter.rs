@@ -65,6 +65,20 @@ impl Emitter {
                 };
                 wasm_block.push(Instruction::LocalSet(index as u32));
             }
+            ssa::Instruction::Sub(variable, lhs, rhs) => {
+                let Ok(data_type) = variable.ty.to_data_type() else {
+                    panic!("Unknown Type {:?}", variable.ty);
+                };
+                wasm_block.push_local(&variable.name.lexeme, data_type);
+                self.compile_operand(wasm_block, lhs, params);
+                self.compile_operand(wasm_block, rhs, params);
+                wasm_block.push(Instruction::I32Sub);
+                let Some(index) = wasm_block.get_local_index(&variable.name.lexeme, params.len())
+                else {
+                    panic!("Unknown Variable {:?}", variable);
+                };
+                wasm_block.push(Instruction::LocalSet(index as u32));
+            }
             ssa::Instruction::Return(operand) => {
                 self.compile_operand(wasm_block, operand, params);
                 wasm_block.push(Instruction::Return);

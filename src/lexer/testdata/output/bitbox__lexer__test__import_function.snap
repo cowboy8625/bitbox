@@ -2,52 +2,67 @@
 source: src/lexer/test.rs
 expression: snapshot_lexing(contents)
 ---
-import core::write;
+import function core::write(s32, s32) s32;
 ^^^^^^ Identifier { lexeme: "import", span: 0..6 }
-       ^^^^ Identifier { lexeme: "core", span: 7..11 }
-           ^ Colon { lexeme: ":", span: 11..12 }
-            ^ Colon { lexeme: ":", span: 12..13 }
-             ^^^^^ Identifier { lexeme: "write", span: 13..18 }
-                  ^ Semicolon { lexeme: ";", span: 18..19 }
+       ^^^^^^^^ Identifier { lexeme: "function", span: 7..15 }
+                ^^^^ Identifier { lexeme: "core", span: 16..20 }
+                    ^^ PathSeparator { lexeme: "::", span: 20..22 }
+                      ^^^^^ Identifier { lexeme: "write", span: 22..27 }
+                           ^ LeftParen { lexeme: "(", span: 27..28 }
+                            ^^^ Identifier { lexeme: "s32", span: 28..31 }
+                               ^ Comma { lexeme: ",", span: 31..32 }
+                                 ^^^ Identifier { lexeme: "s32", span: 33..36 }
+                                    ^ RightParen { lexeme: ")", span: 36..37 }
+                                      ^^^ Identifier { lexeme: "s32", span: 38..41 }
+                                         ^ Semicolon { lexeme: ";", span: 41..42 }
 
-const value_ptr : u32 = #"Hello World\n"#;
-^^^^^ Identifier { lexeme: "const", span: 21..26 }
-      ^^^^^^^^^ Identifier { lexeme: "value_ptr", span: 27..36 }
-                ^ Colon { lexeme: ":", span: 37..38 }
-                  ^^^ Identifier { lexeme: "u32", span: 39..42 }
-                      ^ Equals { lexeme: "=", span: 43..44 }
-                        ^^^^^^^^^^^^^^^^^ BBString { lexeme: "#\"Hello World\\n\"#", span: 45..62 }
-                                         ^ Semicolon { lexeme: ";", span: 62..63 }
-const value_len : u32 = @getStringByteLength value_ptr;
-^^^^^ Identifier { lexeme: "const", span: 64..69 }
-      ^^^^^^^^^ Identifier { lexeme: "value_len", span: 70..79 }
-                ^ Colon { lexeme: ":", span: 80..81 }
-                  ^^^ Identifier { lexeme: "u32", span: 82..85 }
-                      ^ Equals { lexeme: "=", span: 86..87 }
-                        ^^^^^^^^^^^^^^^^^^^^ Builtin { lexeme: "@getStringByteLength", span: 88..108 }
-                                             ^^^^^^^^^ Identifier { lexeme: "value_ptr", span: 109..118 }
-                                                      ^ Semicolon { lexeme: ";", span: 118..119 }
+const value_ptr : *[13; u8] = #"Hello World\n"#;
+^^^^^ Identifier { lexeme: "const", span: 44..49 }
+      ^^^^^^^^^ Identifier { lexeme: "value_ptr", span: 50..59 }
+                ^ Colon { lexeme: ":", span: 60..61 }
+                  ^ Star { lexeme: "*", span: 62..63 }
+                   ^ LeftBracket { lexeme: "[", span: 63..64 }
+                    ^^ Number { lexeme: "13", span: 64..66 }
+                      ^ Semicolon { lexeme: ";", span: 66..67 }
+                        ^^ Identifier { lexeme: "u8", span: 68..70 }
+                          ^ RightBracket { lexeme: "]", span: 70..71 }
+                            ^ Equals { lexeme: "=", span: 72..73 }
+                              ^^^^^^^^^^^^^^^^^ BBString { lexeme: "Hello World\n", span: 74..91 }
+                                               ^ Semicolon { lexeme: ";", span: 91..92 }
+const value_len : u32 = .len value_ptr;
+^^^^^ Identifier { lexeme: "const", span: 93..98 }
+      ^^^^^^^^^ Identifier { lexeme: "value_len", span: 99..108 }
+                ^ Colon { lexeme: ":", span: 109..110 }
+                  ^^^ Identifier { lexeme: "u32", span: 111..114 }
+                      ^ Equals { lexeme: "=", span: 115..116 }
+                        ^^^^ Directive { lexeme: ".len", span: 117..121 }
+                             ^^^^^^^^^ Identifier { lexeme: "value_ptr", span: 122..131 }
+                                      ^ Semicolon { lexeme: ";", span: 131..132 }
 
-public function main() i32 {
-^^^^^^ Identifier { lexeme: "public", span: 121..127 }
-       ^^^^^^^^ Identifier { lexeme: "function", span: 128..136 }
-                ^^^^ Identifier { lexeme: "main", span: 137..141 }
-                    ^ LeftParen { lexeme: "(", span: 141..142 }
-                     ^ RightParen { lexeme: ")", span: 142..143 }
-                       ^^^ Identifier { lexeme: "i32", span: 144..147 }
-                           ^ LeftBrace { lexeme: "(", span: 148..149 }
-    call write(value_ptr, value_len);
-    ^^^^ Identifier { lexeme: "call", span: 154..158 }
-         ^^^^^ Identifier { lexeme: "write", span: 159..164 }
-              ^ LeftParen { lexeme: "(", span: 164..165 }
-               ^^^^^^^^^ Identifier { lexeme: "value_ptr", span: 165..174 }
-                        ^ Comma { lexeme: ",", span: 174..175 }
-                          ^^^^^^^^^ Identifier { lexeme: "value_len", span: 176..185 }
-                                   ^ RightParen { lexeme: ")", span: 185..186 }
-                                    ^ Semicolon { lexeme: ";", span: 186..187 }
-    ret 1;
-    ^^^ Identifier { lexeme: "ret", span: 192..195 }
-        ^ Number { lexeme: "1", span: 196..197 }
-         ^ Semicolon { lexeme: ";", span: 197..198 }
+public function main() s32 {
+^^^^^^ Identifier { lexeme: "public", span: 134..140 }
+       ^^^^^^^^ Identifier { lexeme: "function", span: 141..149 }
+                ^^^^ Identifier { lexeme: "main", span: 150..154 }
+                    ^ LeftParen { lexeme: "(", span: 154..155 }
+                     ^ RightParen { lexeme: ")", span: 155..156 }
+                       ^^^ Identifier { lexeme: "s32", span: 157..160 }
+                           ^ LeftBrace { lexeme: "(", span: 161..162 }
+    result: s32 = @call write(value_ptr, value_len);
+    ^^^^^^ Identifier { lexeme: "result", span: 167..173 }
+          ^ Colon { lexeme: ":", span: 173..174 }
+            ^^^ Identifier { lexeme: "s32", span: 175..178 }
+                ^ Equals { lexeme: "=", span: 179..180 }
+                  ^^^^^ Builtin { lexeme: "@call", span: 181..186 }
+                        ^^^^^ Identifier { lexeme: "write", span: 187..192 }
+                             ^ LeftParen { lexeme: "(", span: 192..193 }
+                              ^^^^^^^^^ Identifier { lexeme: "value_ptr", span: 193..202 }
+                                       ^ Comma { lexeme: ",", span: 202..203 }
+                                         ^^^^^^^^^ Identifier { lexeme: "value_len", span: 204..213 }
+                                                  ^ RightParen { lexeme: ")", span: 213..214 }
+                                                   ^ Semicolon { lexeme: ";", span: 214..215 }
+    @ret result;
+    ^^^^ Builtin { lexeme: "@ret", span: 220..224 }
+         ^^^^^^ Identifier { lexeme: "result", span: 225..231 }
+               ^ Semicolon { lexeme: ";", span: 231..232 }
 }
-^ RightBrace { lexeme: ")", span: 199..200 }
+^ RightBrace { lexeme: ")", span: 233..234 }

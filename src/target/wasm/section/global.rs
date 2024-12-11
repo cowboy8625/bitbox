@@ -140,5 +140,8 @@ fn test_global() {
     globals.push(entry);
     let bytes = globals.to_bytes();
     assert!(bytes.is_ok());
-    assert_eq!(bytes.unwrap(), vec![0x06, 0x04, 0x7F, 0x00, 0x41, 0x64]);
+    assert_eq!(
+        bytes.unwrap(),
+        vec![0x06, 0x06, 0x01, 0x7F, 0x00, 0x41, 0x64, 0x0B]
+    );
 }

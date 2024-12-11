@@ -15,6 +15,12 @@ pub enum ParseError {
     UnexpectedEndOfStream,
 }
 
+enum TopLevel {
+    Function(ssa::Function),
+    Import(ssa::Import),
+    Constant(ssa::Constant),
+}
+
 pub struct Parser {
     stream: TokenStream,
 }
@@ -32,23 +38,10 @@ impl Parser {
         let mut constants = vec![];
 
         while self.stream.is_not_at_end() {
-            let visibility = if self.peek_is_identifier("public") {
-                self.consume::<ast::Identifier>()?;
-                ssa::Visibility::Public
-            } else {
-                ssa::Visibility::Private
-            };
-            if self.peek_is_identifier("function") {
-                let function = self.parse_function(visibility)?;
-                functions.push(function);
-            } else if self.peek_is_identifier("import") {
-                let import = self.parse_import()?;
-                imports.push(import);
-            } else if self.peek_is_identifier("const") {
-                let constant = self.parse_constant()?;
-                constants.push(constant);
-            } else {
-                unreachable!();
+            match self.parse_top_level()? {
+                TopLevel::Import(import) => imports.push(import),
+                TopLevel::Function(func) => functions.push(func),
+                TopLevel::Constant(constant) => constants.push(constant),
             }
         }
 
@@ -57,6 +50,31 @@ impl Parser {
             imports,
             constants,
         })
+    }
+    fn parse_top_level(&mut self) -> Result<TopLevel, ParseError> {
+        let visibility = self.parse_visibility();
+        if self.peek_is_identifier("function") {
+            Ok(TopLevel::Function(self.parse_function(visibility)?))
+        } else if self.peek_is_identifier("import") {
+            Ok(TopLevel::Import(self.parse_import()?))
+        } else if self.peek_is_identifier("const") {
+            Ok(TopLevel::Constant(self.parse_constant()?))
+        } else {
+            Err(ParseError::UnexpectedToken {
+                expected: "top-level construct".to_string(),
+                found: format!("{:?}", self.stream.peek_blind()),
+                span: self.stream.current_span(),
+            })
+        }
+    }
+
+    fn parse_visibility(&mut self) -> ssa::Visibility {
+        if self.peek_is_identifier("public") {
+            self.consume::<ast::Identifier>().ok(); // Consume if present
+            ssa::Visibility::Public
+        } else {
+            ssa::Visibility::Private
+        }
     }
 
     fn consume<Expected>(&mut self) -> Result<Expected, ParseError>
@@ -69,11 +87,17 @@ impl Parser {
             }
             Some(value) => Err(ParseError::UnexpectedToken {
                 expected: std::any::type_name::<Expected>().to_string(),
-                found: format!("{value:?}"),
+                found: format!("{:?}", value),
                 span: value.get_span(),
             }),
             None => Err(ParseError::UnexpectedEndOfStream),
         }
+    }
+
+    fn peek_is_identifier(&self, value: &str) -> bool {
+        self.stream
+            .peek::<ast::Identifier>()
+            .map_or(false, |id| id.get_lexeme() == value)
     }
 
     fn consume_identifier(&mut self, value: &str) -> Result<ast::Identifier, ParseError> {
@@ -86,18 +110,6 @@ impl Parser {
             });
         }
         Ok(tok)
-    }
-
-    fn peek_is_identifier(&self, value: &str) -> bool {
-        let Some(peek) = self
-            .stream
-            .peek::<ast::Identifier>()
-            .map(|i| i.get_lexeme())
-        else {
-            return false;
-        };
-
-        value == peek
     }
 
     fn peek_is_builtin(&self, value: &str) -> bool {
@@ -166,49 +178,104 @@ impl Parser {
 
     fn parse_basic_block(&mut self) -> Result<ssa::BasicBlock, ParseError> {
         let mut instructions = vec![];
+
         while self.stream.is_not_at_end() {
-            if self.peek_is_builtin("@ret") {
-                self.consume::<ast::Builtin>()?;
-                let value = self.parse_operand()?;
-                instructions.push(ssa::Instruction::Return(value));
-                self.consume::<ast::Semicolon>()?;
-                break;
-            } else if self.peek_is_identifier("if") {
-                todo!();
-            }
-
-            // z : i32 = @add x, y;
-            let name = self.consume::<ast::Identifier>()?;
-            self.consume::<ast::Colon>()?;
-            let ty = self.parse_type()?;
-            self.consume::<ast::Equals>()?;
-
-            if self.peek_is_builtin("@add") {
-                let instruction = self.parse_add_instruction(name, ty)?;
+            if let Some(instruction) = self.parse_instruction()? {
                 instructions.push(instruction);
-                continue;
-            } else if self.peek_is_builtin("@call") {
-                let var = ssa::Variable {
-                    name,
-                    ty,
-                    version: 0,
-                };
-                self.consume::<ast::Builtin>()?;
-                let func_name = self.consume::<ast::Identifier>()?;
-                let arguments = self.parse_arguments()?;
-                self.consume::<ast::Semicolon>()?;
-                instructions.push(ssa::Instruction::Call(var, func_name, arguments));
-                continue;
+            } else {
+                break;
             }
-            todo!("unimplemented");
         }
 
         Ok(ssa::BasicBlock {
             id: 0,
             instructions,
+            // TODO: Add predecessors and successors
             successors: vec![],
             predecessors: vec![],
         })
+    }
+
+    fn parse_instruction(&mut self) -> Result<Option<ssa::Instruction>, ParseError> {
+        if self.peek_is_builtin("@ret") {
+            self.consume::<ast::Builtin>()?;
+            let value = self.parse_operand()?;
+            self.consume::<ast::Semicolon>()?;
+            return Ok(Some(ssa::Instruction::Return(value)));
+        }
+
+        let name = self.consume::<ast::Identifier>()?;
+        self.consume::<ast::Colon>()?;
+        let ty = self.parse_type()?;
+        self.consume::<ast::Equals>()?;
+
+        if let Some(instruction) = self.parse_special_instruction(name.clone(), ty.clone())? {
+            return Ok(Some(instruction));
+        }
+
+        Err(ParseError::UnexpectedToken {
+            expected: "valid instruction".to_string(),
+            found: name.lexeme,
+            span: name.span,
+        })
+    }
+
+    fn parse_special_instruction(
+        &mut self,
+        name: ast::Identifier,
+        ty: ssa::Type,
+    ) -> Result<Option<ssa::Instruction>, ParseError> {
+        if self.peek_is_builtin("@add") {
+            self.consume::<ast::Builtin>()?;
+            let lhs = self.parse_operand()?;
+            self.consume::<ast::Comma>()?;
+            let rhs = self.parse_operand()?;
+            self.consume::<ast::Semicolon>()?;
+            return Ok(Some(ssa::Instruction::Add(
+                ssa::Variable {
+                    name,
+                    ty,
+                    version: 0,
+                },
+                lhs,
+                rhs,
+            )));
+        }
+
+        if self.peek_is_builtin("@sub") {
+            self.consume::<ast::Builtin>()?;
+            let lhs = self.parse_operand()?;
+            self.consume::<ast::Comma>()?;
+            let rhs = self.parse_operand()?;
+            self.consume::<ast::Semicolon>()?;
+            return Ok(Some(ssa::Instruction::Sub(
+                ssa::Variable {
+                    name,
+                    ty,
+                    version: 0,
+                },
+                lhs,
+                rhs,
+            )));
+        }
+
+        if self.peek_is_builtin("@call") {
+            self.consume::<ast::Builtin>()?;
+            let func_name = self.consume::<ast::Identifier>()?;
+            let arguments = self.parse_arguments()?;
+            self.consume::<ast::Semicolon>()?;
+            return Ok(Some(ssa::Instruction::Call(
+                ssa::Variable {
+                    name,
+                    ty,
+                    version: 0,
+                },
+                func_name,
+                arguments,
+            )));
+        }
+
+        Ok(None)
     }
 
     fn parse_arguments(&mut self) -> Result<Vec<ssa::Operand>, ParseError> {

@@ -4,6 +4,8 @@ expression: snapshot_parsing(contents)
 ---
 Ok(
     Program {
+        imports: [],
+        constants: [],
         functions: [
             Function {
                 visibility: Public,
@@ -14,10 +16,9 @@ Ok(
                             lexeme: "x",
                             span: 20..21,
                         },
-                        ty: Identifier {
-                            lexeme: "i32",
-                            span: 23..26,
-                        },
+                        ty: Signed(
+                            32,
+                        ),
                         version: 0,
                     },
                     Variable {
@@ -25,17 +26,15 @@ Ok(
                             lexeme: "y",
                             span: 28..29,
                         },
-                        ty: Identifier {
-                            lexeme: "i32",
-                            span: 31..34,
-                        },
+                        ty: Signed(
+                            32,
+                        ),
                         version: 1,
                     },
                 ],
-                return_type: Identifier {
-                    lexeme: "i32",
-                    span: 36..39,
-                },
+                return_type: Signed(
+                    32,
+                ),
                 blocks: [
                     BasicBlock {
                         id: 0,
@@ -46,10 +45,9 @@ Ok(
                                         lexeme: "z",
                                         span: 46..47,
                                     },
-                                    ty: Identifier {
-                                        lexeme: "i32",
-                                        span: 50..53,
-                                    },
+                                    ty: Signed(
+                                        32,
+                                    ),
                                     version: 0,
                                 },
                                 Variable(

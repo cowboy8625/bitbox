@@ -2,25 +2,25 @@
 source: src/lexer/test.rs
 expression: snapshot_lexing(contents)
 ---
-public function add(x: i32, y: i32) i32 {
+public function add(x: s32, y: s32) s32 {
 ^^^^^^ Identifier { lexeme: "public", span: 0..6 }
        ^^^^^^^^ Identifier { lexeme: "function", span: 7..15 }
                 ^^^ Identifier { lexeme: "add", span: 16..19 }
                    ^ LeftParen { lexeme: "(", span: 19..20 }
                     ^ Identifier { lexeme: "x", span: 20..21 }
                      ^ Colon { lexeme: ":", span: 21..22 }
-                       ^^^ Identifier { lexeme: "i32", span: 23..26 }
+                       ^^^ Identifier { lexeme: "s32", span: 23..26 }
                           ^ Comma { lexeme: ",", span: 26..27 }
                             ^ Identifier { lexeme: "y", span: 28..29 }
                              ^ Colon { lexeme: ":", span: 29..30 }
-                               ^^^ Identifier { lexeme: "i32", span: 31..34 }
+                               ^^^ Identifier { lexeme: "s32", span: 31..34 }
                                   ^ RightParen { lexeme: ")", span: 34..35 }
-                                    ^^^ Identifier { lexeme: "i32", span: 36..39 }
+                                    ^^^ Identifier { lexeme: "s32", span: 36..39 }
                                         ^ LeftBrace { lexeme: "(", span: 40..41 }
-    z : i32 = @add x, y;
+    z : s32 = @add x, y;
     ^ Identifier { lexeme: "z", span: 46..47 }
       ^ Colon { lexeme: ":", span: 48..49 }
-        ^^^ Identifier { lexeme: "i32", span: 50..53 }
+        ^^^ Identifier { lexeme: "s32", span: 50..53 }
             ^ Equals { lexeme: "=", span: 54..55 }
               ^^^^ Builtin { lexeme: "@add", span: 56..60 }
                    ^ Identifier { lexeme: "x", span: 61..62 }

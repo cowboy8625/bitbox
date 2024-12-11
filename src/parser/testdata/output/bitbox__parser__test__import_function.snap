@@ -2,10 +2,125 @@
 source: src/parser/test.rs
 expression: snapshot_parsing(contents)
 ---
-Err(
-    UnexpectedToken {
-        expected: "function",
-        found: "import",
-        span: 0..6,
+Ok(
+    Program {
+        imports: [
+            Function(
+                FunctionSpec {
+                    module_name: Identifier {
+                        lexeme: "core",
+                        span: 16..20,
+                    },
+                    name: Identifier {
+                        lexeme: "write",
+                        span: 22..27,
+                    },
+                    params: [
+                        Signed(
+                            32,
+                        ),
+                        Signed(
+                            32,
+                        ),
+                    ],
+                    return_type: Signed(
+                        32,
+                    ),
+                },
+            ),
+        ],
+        constants: [
+            Constant {
+                name: Identifier {
+                    lexeme: "value_ptr",
+                    span: 50..59,
+                },
+                ty: Pointer(
+                    Array(
+                        13,
+                        Unsigned(
+                            8,
+                        ),
+                    ),
+                ),
+                value: String(
+                    "Hello World\n",
+                ),
+            },
+            Constant {
+                name: Identifier {
+                    lexeme: "value_len",
+                    span: 99..108,
+                },
+                ty: Unsigned(
+                    32,
+                ),
+                value: Directive(
+                    Len(
+                        Identifier {
+                            lexeme: "value_ptr",
+                            span: 122..131,
+                        },
+                    ),
+                ),
+            },
+        ],
+        functions: [
+            Function {
+                visibility: Public,
+                name: "main",
+                params: [],
+                return_type: Signed(
+                    32,
+                ),
+                blocks: [
+                    BasicBlock {
+                        id: 0,
+                        instructions: [
+                            Call(
+                                Variable {
+                                    name: Identifier {
+                                        lexeme: "result",
+                                        span: 167..173,
+                                    },
+                                    ty: Signed(
+                                        32,
+                                    ),
+                                    version: 0,
+                                },
+                                Identifier {
+                                    lexeme: "write",
+                                    span: 187..192,
+                                },
+                                [
+                                    Variable(
+                                        Identifier {
+                                            lexeme: "value_ptr",
+                                            span: 193..202,
+                                        },
+                                    ),
+                                    Variable(
+                                        Identifier {
+                                            lexeme: "value_len",
+                                            span: 204..213,
+                                        },
+                                    ),
+                                ],
+                            ),
+                            Return(
+                                Variable(
+                                    Identifier {
+                                        lexeme: "result",
+                                        span: 225..231,
+                                    },
+                                ),
+                            ),
+                        ],
+                        successors: [],
+                        predecessors: [],
+                    },
+                ],
+            },
+        ],
     },
 )

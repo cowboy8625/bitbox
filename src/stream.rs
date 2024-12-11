@@ -1,4 +1,4 @@
-use crate::lexer::token::Token;
+use crate::lexer::token::{Span, Token};
 
 #[derive(Debug)]
 pub struct TokenStream {
@@ -9,6 +9,10 @@ pub struct TokenStream {
 impl TokenStream {
     pub(crate) fn new(stream: Vec<Box<dyn Token>>) -> Self {
         Self { stream, idx: 0 }
+    }
+
+    pub fn current_span(&self) -> Span {
+        self.stream[self.idx].get_span()
     }
 
     pub fn is_not_at_end(&self) -> bool {

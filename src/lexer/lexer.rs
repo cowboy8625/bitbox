@@ -134,9 +134,3 @@ impl Iterator for Lexer<'_> {
         self.parse()
     }
 }
-
-#[test]
-fn test_lexer() {
-    let token = Lexer::new("#\"test\"#").parse().unwrap();
-    assert_eq!(token.get_lexeme(), "#\"test\"#");
-}

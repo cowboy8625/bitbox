@@ -59,8 +59,9 @@ pub struct Variable {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Instruction {
-    Assign(Variable, Operand), // x: type = 1
+    Assign(Variable, Operand),
     Add(Variable, Operand, Operand),
+    Sub(Variable, Operand, Operand),
     Return(Operand),
     Call(Variable, ast::Identifier, Vec<Operand>),
     Phi(Variable, Vec<(Variable, usize)>),
