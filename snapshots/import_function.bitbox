@@ -4,6 +4,6 @@ const value_ptr : *[13; u8] = #"Hello World\n"#;
 const value_len : u32 = .len value_ptr;
 
 public function main() s32 {
-    result: s32 = @call write(value_ptr, value_len);
-    @ret result;
+    @call s32 : result write(value_ptr, value_len);
+    @ret s32 : result;
 }

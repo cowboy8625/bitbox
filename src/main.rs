@@ -1,10 +1,8 @@
 use std::env::args;
 
-mod ast;
 mod lexer;
 mod parser;
 mod ssa;
-mod stream;
 mod target;
 
 fn main() {

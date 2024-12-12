@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use crate::ast;
+use crate::lexer::token::{Token, TokenKind};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Type {
@@ -16,7 +16,7 @@ pub trait IntoSsaType {
     fn into_ssa_type(&self) -> Result<Type, Self::Error>;
 }
 
-impl IntoSsaType for ast::Identifier {
+impl IntoSsaType for Token {
     type Error = Self;
     fn into_ssa_type<'a>(&'a self) -> Result<Type, Self::Error> {
         let parse_type = |input: &'a str| -> Option<(&'a str, &'a str)> {
@@ -38,8 +38,9 @@ impl IntoSsaType for ast::Identifier {
             "s" => Ok(Type::Signed(number.parse().unwrap())),
             "f" => Ok(Type::Float(number.parse().unwrap())),
             "*" => {
-                let ty = ast::Identifier {
+                let ty = Token {
                     lexeme: number.to_string(),
+                    kind: TokenKind::Number,
                     span: 0..0,
                 }
                 .into_ssa_type()?;
@@ -52,7 +53,7 @@ impl IntoSsaType for ast::Identifier {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Variable {
-    pub name: ast::Identifier,
+    pub name: Token,
     pub ty: Type,
     pub version: usize,
 }
@@ -62,15 +63,15 @@ pub enum Instruction {
     Assign(Variable, Operand),
     Add(Variable, Operand, Operand),
     Sub(Variable, Operand, Operand),
-    Return(Operand),
-    Call(Variable, ast::Identifier, Vec<Operand>),
+    Return(Type, Operand),
+    Call(Variable, Token, Vec<Operand>),
     Phi(Variable, Vec<(Variable, usize)>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Operand {
-    Variable(ast::Identifier),
-    Constant(ast::Number),
+    Variable(Token),
+    Constant(Token),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -81,9 +82,10 @@ pub struct BasicBlock {
     pub predecessors: Vec<usize>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub enum Visibility {
     Public,
+    #[default]
     Private,
 }
 
@@ -98,8 +100,8 @@ pub struct Function {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FunctionSpec {
-    pub module_name: ast::Identifier,
-    pub name: ast::Identifier,
+    pub module_name: Token,
+    pub name: Token,
     pub params: Vec<Type>,
     pub return_type: Type,
 }
@@ -111,7 +113,7 @@ pub enum Import {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Directive {
-    Len(ast::Identifier),
+    Len(Token),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -122,7 +124,7 @@ pub enum ConstantValue {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Constant {
-    pub name: ast::Identifier,
+    pub name: Token,
     pub ty: Type,
     pub value: ConstantValue,
 }

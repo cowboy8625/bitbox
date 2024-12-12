@@ -79,7 +79,7 @@ impl Emitter {
                 };
                 wasm_block.push(Instruction::LocalSet(index as u32));
             }
-            ssa::Instruction::Return(operand) => {
+            ssa::Instruction::Return(_, operand) => {
                 self.compile_operand(wasm_block, operand, params);
                 wasm_block.push(Instruction::Return);
             }

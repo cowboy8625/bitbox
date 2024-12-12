@@ -10,13 +10,13 @@ pub fn snapshot_lexing(input: &str) -> String {
         output += line;
         output += "\n";
         while let Some(tok) = tokens.pop_front() {
-            if total + line.len() <= tok.get_span().start {
+            if total + line.len() <= tok.span.start {
                 tokens.push_front(tok);
                 break;
             }
 
-            output += &" ".repeat(tok.get_span().start - total);
-            output += &"^".repeat(tok.get_span().len());
+            output += &" ".repeat(tok.span.start - total);
+            output += &"^".repeat(tok.span.len());
             write!(&mut output, " {tok:?}").expect("failed to write()");
             output += "\n"
         }

@@ -1,14 +1,8 @@
-use super::token;
-use crate::ast::{
-    BBString, Builtin, Colon, Comma, Directive, Dot, Equals, Identifier, InvalidToken, LeftBrace,
-    LeftBracket, LeftParen, Number, PathSeparator, Plus, RightBrace, RightBracket, RightParen,
-    Semicolon, Star,
-};
+use super::token::{Directive, Instruction, Keyword, Span, Token, TokenKind};
 
-type Token = Box<dyn token::Token>;
 pub struct Lexer<'a> {
     chars: std::iter::Peekable<std::str::Chars<'a>>,
-    span: token::Span,
+    span: Span,
 }
 
 impl<'a> Lexer<'a> {
@@ -34,10 +28,14 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn spanned(&mut self) -> token::Span {
+    fn spanned(&mut self, kind: TokenKind, lexeme: impl Into<String>) -> Token {
         let span = self.span.clone();
         self.span = self.span.end..self.span.end;
-        span
+        Token {
+            span,
+            kind,
+            lexeme: lexeme.into(),
+        }
     }
 
     fn parse_number(&mut self, value: char) -> Token {
@@ -49,7 +47,7 @@ impl<'a> Lexer<'a> {
             lexeme.push(value);
         }
 
-        token::create::<Number>(lexeme, self.spanned())
+        self.spanned(TokenKind::Number, lexeme)
     }
 
     fn parse_identifier(&mut self, value: char) -> Token {
@@ -59,7 +57,13 @@ impl<'a> Lexer<'a> {
             lexeme.push(value);
         }
 
-        token::create::<Identifier>(lexeme, self.spanned())
+        match lexeme.as_str() {
+            "import" => self.spanned(TokenKind::Keyword(Keyword::Import), lexeme),
+            "const" => self.spanned(TokenKind::Keyword(Keyword::Const), lexeme),
+            "function" => self.spanned(TokenKind::Keyword(Keyword::Function), lexeme),
+            "public" => self.spanned(TokenKind::Keyword(Keyword::Public), lexeme),
+            _ => self.spanned(TokenKind::Identifier, lexeme),
+        }
     }
 
     fn parse_builtin(&mut self) -> Token {
@@ -69,7 +73,15 @@ impl<'a> Lexer<'a> {
             lexeme.push(value);
         }
 
-        token::create::<Builtin>(lexeme, self.spanned())
+        let kind = match lexeme.as_str() {
+            "@add" => Instruction::Add,
+            "@sub" => Instruction::Sub,
+            "@call" => Instruction::Call,
+            "@ret" => Instruction::Ret,
+            _ => return self.spanned(TokenKind::InvalidToken, lexeme),
+        };
+
+        self.spanned(TokenKind::Instruction(kind), lexeme)
     }
 
     fn parse_string(&mut self) -> Token {
@@ -81,7 +93,7 @@ impl<'a> Lexer<'a> {
             }
         }
         let lexeme = lexeme[2..lexeme.len() - 2].replace("\\n", "\n");
-        token::create::<BBString>(lexeme, self.spanned())
+        self.spanned(TokenKind::String, lexeme)
     }
 
     fn parse_directive(&mut self) -> Token {
@@ -90,38 +102,46 @@ impl<'a> Lexer<'a> {
         {
             lexeme.push(value);
         }
-        token::create::<Directive>(lexeme, self.spanned())
+
+        let kind = match lexeme.as_str() {
+            ".len" => Directive::Len,
+            _ => return self.spanned(TokenKind::InvalidToken, lexeme),
+        };
+
+        self.spanned(TokenKind::Directive(kind), lexeme)
+    }
+
+    fn skip(&mut self) -> Option<Token> {
+        self.spanned(TokenKind::InvalidToken, ' ');
+        self.parse()
     }
 
     fn parse(&mut self) -> Option<Token> {
         match self.next() {
             Some(value @ '0'..='9') => Some(self.parse_number(value)),
             Some(value) if value.is_ascii_alphabetic() => Some(self.parse_identifier(value)),
-            Some(value) if value.is_ascii_whitespace() => {
-                self.spanned();
-                self.parse()
-            }
+            Some(value) if value.is_ascii_whitespace() => self.skip(),
             Some('#') if self.chars.peek() == Some(&'"') => Some(self.parse_string()),
             Some('.') if self.chars.peek() != Some(&' ') => Some(self.parse_directive()),
             Some(':') if self.chars.peek() == Some(&':') => {
                 self.next();
-                Some(token::create::<PathSeparator>("::", self.spanned()))
+                Some(self.spanned(TokenKind::PathSeparator, "::"))
             }
             Some('@') => Some(self.parse_builtin()),
-            Some('+') => Some(token::create::<Plus>('+', self.spanned())),
-            Some('(') => Some(token::create::<LeftParen>('(', self.spanned())),
-            Some(')') => Some(token::create::<RightParen>(')', self.spanned())),
-            Some('{') => Some(token::create::<LeftBrace>('(', self.spanned())),
-            Some('}') => Some(token::create::<RightBrace>(')', self.spanned())),
-            Some('[') => Some(token::create::<LeftBracket>('[', self.spanned())),
-            Some(']') => Some(token::create::<RightBracket>(']', self.spanned())),
-            Some(':') => Some(token::create::<Colon>(':', self.spanned())),
-            Some(';') => Some(token::create::<Semicolon>(';', self.spanned())),
-            Some(',') => Some(token::create::<Comma>(',', self.spanned())),
-            Some('=') => Some(token::create::<Equals>('=', self.spanned())),
-            Some('.') => Some(token::create::<Dot>('.', self.spanned())),
-            Some('*') => Some(token::create::<Star>('*', self.spanned())),
-            Some(value) => Some(token::create::<InvalidToken>(value, self.span.clone())),
+            Some('+') => Some(self.spanned(TokenKind::Plus, '+')),
+            Some('(') => Some(self.spanned(TokenKind::LeftParen, '(')),
+            Some(')') => Some(self.spanned(TokenKind::RightParen, ')')),
+            Some('{') => Some(self.spanned(TokenKind::LeftBrace, '{')),
+            Some('}') => Some(self.spanned(TokenKind::RightBrace, '}')),
+            Some('[') => Some(self.spanned(TokenKind::LeftBracket, '[')),
+            Some(']') => Some(self.spanned(TokenKind::RightBracket, ']')),
+            Some(':') => Some(self.spanned(TokenKind::Colon, ':')),
+            Some(';') => Some(self.spanned(TokenKind::Semicolon, ';')),
+            Some(',') => Some(self.spanned(TokenKind::Comma, ',')),
+            Some('=') => Some(self.spanned(TokenKind::Equals, '=')),
+            Some('.') => Some(self.spanned(TokenKind::Dot, '.')),
+            Some('*') => Some(self.spanned(TokenKind::Star, '*')),
+            Some(value) => Some(self.spanned(TokenKind::InvalidToken, value)),
             None => None,
         }
     }
