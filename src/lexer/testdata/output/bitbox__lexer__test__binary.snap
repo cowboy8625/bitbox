@@ -3,33 +3,35 @@ source: src/lexer/test.rs
 expression: snapshot_lexing(contents)
 ---
 public function add(x: s32, y: s32) s32 {
-^^^^^^ Identifier { lexeme: "public", span: 0..6 }
-       ^^^^^^^^ Identifier { lexeme: "function", span: 7..15 }
-                ^^^ Identifier { lexeme: "add", span: 16..19 }
-                   ^ LeftParen { lexeme: "(", span: 19..20 }
-                    ^ Identifier { lexeme: "x", span: 20..21 }
-                     ^ Colon { lexeme: ":", span: 21..22 }
-                       ^^^ Identifier { lexeme: "s32", span: 23..26 }
-                          ^ Comma { lexeme: ",", span: 26..27 }
-                            ^ Identifier { lexeme: "y", span: 28..29 }
-                             ^ Colon { lexeme: ":", span: 29..30 }
-                               ^^^ Identifier { lexeme: "s32", span: 31..34 }
-                                  ^ RightParen { lexeme: ")", span: 34..35 }
-                                    ^^^ Identifier { lexeme: "s32", span: 36..39 }
-                                        ^ LeftBrace { lexeme: "(", span: 40..41 }
-    z : s32 = @add x, y;
-    ^ Identifier { lexeme: "z", span: 46..47 }
-      ^ Colon { lexeme: ":", span: 48..49 }
-        ^^^ Identifier { lexeme: "s32", span: 50..53 }
-            ^ Equals { lexeme: "=", span: 54..55 }
-              ^^^^ Builtin { lexeme: "@add", span: 56..60 }
-                   ^ Identifier { lexeme: "x", span: 61..62 }
-                    ^ Comma { lexeme: ",", span: 62..63 }
-                      ^ Identifier { lexeme: "y", span: 64..65 }
-                       ^ Semicolon { lexeme: ";", span: 65..66 }
-    @ret z;
-    ^^^^ Builtin { lexeme: "@ret", span: 71..75 }
-         ^ Identifier { lexeme: "z", span: 76..77 }
-          ^ Semicolon { lexeme: ";", span: 77..78 }
+^^^^^^ Token { kind: Keyword(Public), lexeme: "public", span: 0..6 }
+       ^^^^^^^^ Token { kind: Keyword(Function), lexeme: "function", span: 7..15 }
+                ^^^ Token { kind: Identifier, lexeme: "add", span: 16..19 }
+                   ^ Token { kind: LeftParen, lexeme: "(", span: 19..20 }
+                    ^ Token { kind: Identifier, lexeme: "x", span: 20..21 }
+                     ^ Token { kind: Colon, lexeme: ":", span: 21..22 }
+                       ^^^ Token { kind: Identifier, lexeme: "s32", span: 23..26 }
+                          ^ Token { kind: Comma, lexeme: ",", span: 26..27 }
+                            ^ Token { kind: Identifier, lexeme: "y", span: 28..29 }
+                             ^ Token { kind: Colon, lexeme: ":", span: 29..30 }
+                               ^^^ Token { kind: Identifier, lexeme: "s32", span: 31..34 }
+                                  ^ Token { kind: RightParen, lexeme: ")", span: 34..35 }
+                                    ^^^ Token { kind: Identifier, lexeme: "s32", span: 36..39 }
+                                        ^ Token { kind: LeftBrace, lexeme: "{", span: 40..41 }
+    @add s32 : z, x, y;
+    ^^^^ Token { kind: Instruction(Add), lexeme: "@add", span: 46..50 }
+         ^^^ Token { kind: Identifier, lexeme: "s32", span: 51..54 }
+             ^ Token { kind: Colon, lexeme: ":", span: 55..56 }
+               ^ Token { kind: Identifier, lexeme: "z", span: 57..58 }
+                ^ Token { kind: Comma, lexeme: ",", span: 58..59 }
+                  ^ Token { kind: Identifier, lexeme: "x", span: 60..61 }
+                   ^ Token { kind: Comma, lexeme: ",", span: 61..62 }
+                     ^ Token { kind: Identifier, lexeme: "y", span: 63..64 }
+                      ^ Token { kind: Semicolon, lexeme: ";", span: 64..65 }
+    @ret s32 : z;
+    ^^^^ Token { kind: Instruction(Ret), lexeme: "@ret", span: 70..74 }
+         ^^^ Token { kind: Identifier, lexeme: "s32", span: 75..78 }
+             ^ Token { kind: Colon, lexeme: ":", span: 79..80 }
+               ^ Token { kind: Identifier, lexeme: "z", span: 81..82 }
+                ^ Token { kind: Semicolon, lexeme: ";", span: 82..83 }
 }
-^ RightBrace { lexeme: ")", span: 79..80 }
+^ Token { kind: RightBrace, lexeme: "}", span: 84..85 }
