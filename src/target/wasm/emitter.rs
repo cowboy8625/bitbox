@@ -216,23 +216,32 @@ impl Emitter {
 
     pub fn compile_constant_in_module(&mut self) -> Result<(), BitBoxError> {
         for constant in self.program.constants.iter() {
-            let ssa::Constant { name, ty: _, value } = constant;
+            let ssa::Constant { name, ty, value } = constant;
             match value {
-                ssa::ConstantValue::String(string) => {
-                    let ptr = self.module.add_string(&name.lexeme, string);
+                ssa::ConstantValue::String(tok) => {
+                    let ptr = self.module.add_string(&name.lexeme, &tok.lexeme);
                     let entry = GlobalEntry::new_i32(&name.lexeme, false, ptr);
                     self.module.add_global(entry);
                 }
                 ssa::ConstantValue::Directive(directive) => match directive {
                     ssa::Directive::Len(identifier) => {
                         let Some((_, entry)) = self.module.get_global(&identifier.lexeme) else {
-                            panic!("Unknown Variable while compiling constant {:?}", identifier);
+                            return Err(BitBoxError::UndefinedVariable(identifier.clone()));
                         };
                         let Intializer::I32Const(id) = entry.intializer else {
-                            panic!("Not I32Const while compiling constant {:?}", identifier);
+                            return Err(BitBoxError::InvalidType {
+                                expected: "ptr to array *[<size>; <type>]".to_string(),
+                                actual: identifier.clone(),
+                                actual_type: format!("{:?}", ty),
+                            });
                         };
                         let Some(segment) = self.module.get_data_segment_by_id(id as usize) else {
-                            panic!("Not I32Const while compiling constant {:?}", identifier);
+                            // NOTE: I think this would only happen if code was missing or bugged
+                            // in the emitter phase.
+                            panic!(
+                                "Internal Error, looks like memory was not initialized for {:?}",
+                                identifier
+                            );
                         };
 
                         if segment.name != identifier.lexeme {

@@ -118,7 +118,7 @@ pub enum Directive {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ConstantValue {
-    String(String),
+    String(Token),
     Directive(Directive),
 }
 

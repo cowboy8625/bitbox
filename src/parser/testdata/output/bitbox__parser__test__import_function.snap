@@ -47,7 +47,11 @@ Ok(
                     ),
                 ),
                 value: String(
-                    "Hello World\n",
+                    Token {
+                        kind: String,
+                        lexeme: "Hello World\n",
+                        span: 74..91,
+                    },
                 ),
             },
             Constant {

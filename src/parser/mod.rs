@@ -237,7 +237,7 @@ impl Parser {
     fn parse_constant_value(&mut self) -> Result<ssa::ConstantValue, BitBoxError> {
         let tok = self.next()?;
         match tok.kind {
-            TokenKind::String => Ok(ssa::ConstantValue::String(tok.lexeme)),
+            TokenKind::String => Ok(ssa::ConstantValue::String(tok)),
             TokenKind::Directive(directive) => match directive {
                 token::Directive::Len => {
                     let value = self.consume(TokenKind::Identifier)?;

@@ -3,13 +3,22 @@ use std::fmt::Write;
 
 #[derive(Debug)]
 pub enum BitBoxError {
-    UnexpectedToken { expected: TokenKind, actual: Token },
+    UnexpectedToken {
+        expected: TokenKind,
+        actual: Token,
+    },
     InvalidContantValue(Token),
     InvalidInstruction(Token),
     InvalidToken(Token),
     UnexpectedEndOfStream,
     ExpectedTopLevelItem(Token),
     ExpectedType(Token),
+    UndefinedVariable(Token),
+    InvalidType {
+        expected: String,
+        actual_type: String,
+        actual: Token,
+    },
 }
 
 impl BitBoxError {
@@ -47,6 +56,18 @@ impl BitBoxError {
             Self::ExpectedType(token) => ReportBuilder::new(filename, src, &token.span)
                 .with_message(format!("expected a type but found {:?}", token.kind))
                 .with_note("expected a type: s32, u32, f32, ...")
+                .build(),
+            Self::UndefinedVariable(token) => ReportBuilder::new(filename, src, &token.span)
+                .with_message("undefined variable")
+                .with_note("variable's must be forwarded defined")
+                .build(),
+            Self::InvalidType {
+                expected,
+                actual_type,
+                actual,
+            } => ReportBuilder::new(filename, src, &actual.span)
+                .with_message(format!("invalid type for {}", actual.lexeme))
+                .with_note(format!("expected: {}, found: {}", expected, actual_type))
                 .build(),
         }
     }
