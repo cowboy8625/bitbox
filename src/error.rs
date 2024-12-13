@@ -1,15 +1,9 @@
 use crate::lexer::token::{Span, Token, TokenKind};
 use std::fmt::Write;
 
-const INSTRUCTION_LIST: &[&str] = &["add", "call", "ret", "sub"];
-
 #[derive(Debug)]
 pub enum BitBoxError {
-    UnexpectedToken {
-        expected: TokenKind,
-        actual: Token,
-        help: Option<String>,
-    },
+    UnexpectedToken { expected: TokenKind, actual: Token },
     InvalidContantValue(Token),
     InvalidInstruction(Token),
     InvalidToken(Token),
@@ -32,17 +26,15 @@ impl BitBoxError {
                 .with_message("invalid instruction")
                 .with_note("expected one of: add, call, ret, sub ...")
                 .build(),
-            Self::UnexpectedToken {
-                expected,
-                actual,
-                help,
-            } => ReportBuilder::new(filename, src, &actual.span)
-                .with_message("unexpected token")
-                .with_note(format!(
-                    "expected: {:?}, found: {}",
-                    expected, actual.lexeme
-                ))
-                .build(),
+            Self::UnexpectedToken { expected, actual } => {
+                ReportBuilder::new(filename, src, &actual.span)
+                    .with_message("unexpected token")
+                    .with_note(format!(
+                        "expected: {:?}, found: {}",
+                        expected, actual.lexeme
+                    ))
+                    .build()
+            }
             Self::UnexpectedEndOfStream => {
                 ReportBuilder::new(filename, src, &(src.len().saturating_sub(1)..src.len()))
                     .with_message("unexpected end of stream")

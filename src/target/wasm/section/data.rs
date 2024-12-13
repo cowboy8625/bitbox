@@ -23,19 +23,6 @@ impl Data {
         self
     }
 
-    // pub fn push_data(&mut self, name: impl Into<String>, data: Vec<u8>) -> u32 {
-    //     let name = name.into();
-    //     match self.data.last_mut() {
-    //         Some(segment) => segment.push_data(data),
-    //         None => {
-    //             let mut segment = Segment::default();
-    //             segment.data.extend(data);
-    //             self.data.push(segment);
-    //             0
-    //         }
-    //     }
-    // }
-
     pub fn get_id(&self, name: impl Into<String>) -> Option<u32> {
         let name = name.into();
         self.data

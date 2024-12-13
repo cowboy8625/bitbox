@@ -1,17 +1,16 @@
 use super::{
     opcode::Instruction,
     section::{
+        _type::{Kind, Type},
         code::{Block, Code},
         data::{Data, Segment},
-        export::{Export, ExportEntry, ExportType},
+        export::{Export, ExportEntry},
         function::Function,
-        global::{Global, GlobalEntry, Intializer},
+        global::{Global, GlobalEntry},
         header::Header,
         import::{Import, ImportEntry, ImportType},
         memory::{Memory, Page},
         start::Start,
-        DataType, Section,
-        _type::{FunctionType, Kind, Type, ValueType},
     },
 };
 

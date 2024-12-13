@@ -26,12 +26,7 @@ impl Parser {
     fn consume(&mut self, expected: TokenKind) -> Result<Token, BitBoxError> {
         match self.stream.next() {
             Some(actual) if actual.kind == expected => Ok(actual),
-            Some(actual) => Err(BitBoxError::UnexpectedToken {
-                expected,
-                actual,
-                // TODO: later let consume take in a help string,
-                help: None,
-            }),
+            Some(actual) => Err(BitBoxError::UnexpectedToken { expected, actual }),
             None => Err(BitBoxError::UnexpectedEndOfStream),
         }
     }

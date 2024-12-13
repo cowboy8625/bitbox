@@ -1,23 +1,15 @@
-#![allow(unused)]
-use core::panic;
-
 use super::{
     module::Module,
     opcode::Instruction,
     section::{
-        code::{Block, Code},
-        data::{Data, Segment},
-        export::{Export, ExportEntry, ExportType},
-        function::Function,
-        header::Header,
-        import::{Import, ImportEntry, ImportType},
-        memory::{Memory, Page},
-        start::Start,
-        DataType, Section,
-        _type::{FunctionType, Type, ValueType},
+        _type::{FunctionType, ValueType},
+        code::Block,
+        export::{ExportEntry, ExportType},
         global::GlobalEntry,
+        memory::Page,
     },
 };
+use crate::error::BitBoxError;
 
 use super::ToDataType;
 use crate::{ssa, target::wasm::section::global::Intializer};
@@ -48,7 +40,7 @@ impl Emitter {
         wasm_block: &mut Block,
         instruction: &ssa::Instruction,
         params: &[ssa::Variable],
-    ) {
+    ) -> Result<(), BitBoxError> {
         match instruction {
             ssa::Instruction::Assign(_variable, _operand) => todo!(),
             ssa::Instruction::Add(variable, lhs, rhs) => {
@@ -56,8 +48,8 @@ impl Emitter {
                     panic!("Unknown Type {:?}", variable.ty);
                 };
                 wasm_block.push_local(&variable.name.lexeme, data_type);
-                self.compile_operand(wasm_block, lhs, params);
-                self.compile_operand(wasm_block, rhs, params);
+                self.compile_operand(wasm_block, lhs, params)?;
+                self.compile_operand(wasm_block, rhs, params)?;
                 wasm_block.push(Instruction::I32Add);
                 let Some(index) = wasm_block.get_local_index(&variable.name.lexeme, params.len())
                 else {
@@ -70,8 +62,8 @@ impl Emitter {
                     panic!("Unknown Type {:?}", variable.ty);
                 };
                 wasm_block.push_local(&variable.name.lexeme, data_type);
-                self.compile_operand(wasm_block, lhs, params);
-                self.compile_operand(wasm_block, rhs, params);
+                self.compile_operand(wasm_block, lhs, params)?;
+                self.compile_operand(wasm_block, rhs, params)?;
                 wasm_block.push(Instruction::I32Sub);
                 let Some(index) = wasm_block.get_local_index(&variable.name.lexeme, params.len())
                 else {
@@ -80,7 +72,7 @@ impl Emitter {
                 wasm_block.push(Instruction::LocalSet(index as u32));
             }
             ssa::Instruction::Return(_, operand) => {
-                self.compile_operand(wasm_block, operand, params);
+                self.compile_operand(wasm_block, operand, params)?;
                 wasm_block.push(Instruction::Return);
             }
             ssa::Instruction::Phi(_variable, _vec) => todo!(),
@@ -90,7 +82,7 @@ impl Emitter {
                 };
                 wasm_block.push_local(&variable.name.lexeme, data_type);
                 for argument in arguments.iter() {
-                    self.compile_operand(wasm_block, argument, params);
+                    self.compile_operand(wasm_block, argument, params)?;
                 }
                 let Some(id) = self.module.get_function_id(&name.lexeme) else {
                     panic!("Unknown Function {:?}", name);
@@ -103,6 +95,7 @@ impl Emitter {
                 wasm_block.push(Instruction::LocalSet(index as u32));
             }
         }
+        Ok(())
     }
 
     fn compile_operand(
@@ -110,7 +103,7 @@ impl Emitter {
         wasm_block: &mut Block,
         operand: &ssa::Operand,
         params: &[ssa::Variable],
-    ) {
+    ) -> Result<(), BitBoxError> {
         match operand {
             ssa::Operand::Variable(variable) => {
                 if let Some(index) = params
@@ -120,11 +113,11 @@ impl Emitter {
                 {
                     let instruction = Instruction::LocalGet(index as u32);
                     wasm_block.push(instruction);
-                    return;
+                    return Ok(());
                 } else if let Some(index) = self.module.get_global_index(&variable.lexeme) {
                     let instruction = Instruction::GlobalGet(index as u32);
                     wasm_block.push(instruction);
-                    return;
+                    return Ok(());
                 }
                 panic!("Variable {:?} is not declare", variable);
             }
@@ -133,19 +126,24 @@ impl Emitter {
                 wasm_block.push(Instruction::I32Const(number.lexeme.parse().unwrap()));
             }
         }
+        Ok(())
     }
 
-    fn compile_basic_block(&mut self, expr: &[ssa::BasicBlock], params: &[ssa::Variable]) -> Block {
+    fn compile_basic_block(
+        &mut self,
+        expr: &[ssa::BasicBlock],
+        params: &[ssa::Variable],
+    ) -> Result<Block, BitBoxError> {
         let mut wasm_block = Block::default();
         for block in expr.iter() {
             for instruction in block.instructions.iter() {
-                self.compile_instruction(&mut wasm_block, instruction, params);
+                self.compile_instruction(&mut wasm_block, instruction, params)?;
             }
         }
-        wasm_block
+        Ok(wasm_block)
     }
 
-    fn compile_function_in_module(&mut self) {
+    fn compile_function_in_module(&mut self) -> Result<(), BitBoxError> {
         for func in self.program.functions.clone().into_iter() {
             let ssa::Function {
                 visibility,
@@ -170,9 +168,7 @@ impl Emitter {
                 func_type
             };
 
-            let mut block = self.compile_basic_block(&blocks, &params);
-            //block_instructions.push(Instruction::Drop);
-            // let block = Block::new(block_instructions);
+            let block = self.compile_basic_block(&blocks, &params)?;
 
             self.module.add_function(&name, func_type, block);
 
@@ -184,9 +180,10 @@ impl Emitter {
                     .export(ExportEntry::new(&name, ExportType::Func, idx as u32));
             }
         }
+        Ok(())
     }
 
-    pub fn compile_import_in_module(&mut self) {
+    pub fn compile_import_in_module(&mut self) -> Result<(), BitBoxError> {
         for import in self.program.imports.iter() {
             match import {
                 ssa::Import::Function(spec) => {
@@ -196,15 +193,14 @@ impl Emitter {
                         params,
                         return_type,
                     } = spec;
-                    let func =
-                        params
-                            .into_iter()
-                            .fold(FunctionType::default(), |mut acc, param| {
-                                let Ok(data_type) = param.to_data_type() else {
-                                    panic!("Unknown Type {:?}", param);
-                                };
-                                acc.with_param(ValueType::Data(data_type))
-                            });
+                    let func = params
+                        .into_iter()
+                        .fold(FunctionType::default(), |acc, param| {
+                            let Ok(data_type) = param.to_data_type() else {
+                                panic!("Unknown Type {:?}", param);
+                            };
+                            acc.with_param(ValueType::Data(data_type))
+                        });
 
                     let func = if let Ok(return_type) = return_type.to_data_type() {
                         func.with_result(return_type)
@@ -215,11 +211,12 @@ impl Emitter {
                 }
             }
         }
+        Ok(())
     }
 
-    pub fn compile_constant_in_module(&mut self) {
+    pub fn compile_constant_in_module(&mut self) -> Result<(), BitBoxError> {
         for constant in self.program.constants.iter() {
-            let ssa::Constant { name, ty, value } = constant;
+            let ssa::Constant { name, ty: _, value } = constant;
             match value {
                 ssa::ConstantValue::String(string) => {
                     let ptr = self.module.add_string(&name.lexeme, string);
@@ -249,24 +246,18 @@ impl Emitter {
                 },
             }
         }
+        Ok(())
     }
 
-    pub fn emit(mut self) -> Module {
+    pub fn emit(mut self) -> Result<Module, BitBoxError> {
         self.module.add_memory(Page::WithNoMinimun(1));
         self.module
             .export(ExportEntry::new("memory", ExportType::Memory, 0));
 
-        self.compile_import_in_module();
-        self.compile_constant_in_module();
-        self.compile_function_in_module();
+        self.compile_import_in_module()?;
+        self.compile_constant_in_module()?;
+        self.compile_function_in_module()?;
 
-        // if self.no_main {
-        //     let Some(main_id) = self.module.get_main_function_id() else {
-        //         panic!("No main function found");
-        //     };
-        //     self.module.set_start(main_id);
-        // }
-
-        self.module
+        Ok(self.module)
     }
 }

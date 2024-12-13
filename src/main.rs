@@ -21,7 +21,14 @@ fn main() {
             std::process::exit(1);
         }
     };
-    let module = target::wasm::Emitter::new(program).with_no_main().emit();
+    let module = match target::wasm::Emitter::new(program).with_no_main().emit() {
+        Ok(module) => module,
+        Err(err) => {
+            let formated_error = err.report(&filename, &src);
+            eprintln!("{formated_error}");
+            std::process::exit(1);
+        }
+    };
     let bytes = module.to_bytes().unwrap();
     let (binary_name, _) = filename.split_once('.').unwrap();
     std::fs::write(format!("{}.wasm", binary_name), bytes).unwrap();
