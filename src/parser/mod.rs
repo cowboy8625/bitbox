@@ -1,17 +1,8 @@
 #[cfg(test)]
 mod test;
+use crate::error::BitBoxError;
 use crate::lexer::token::{self, Span, Token, TokenKind};
 use crate::ssa::{self, IntoSsaType};
-
-#[derive(Debug)]
-pub enum ParseError {
-    UnexpectedToken {
-        expected: String,
-        found: String,
-        span: Span,
-    },
-    UnexpectedEndOfStream,
-}
 
 enum TopLevel {
     Function(ssa::Function),
@@ -32,15 +23,16 @@ impl Parser {
             .unwrap_or_default()
     }
 
-    fn consume(&mut self, expected: TokenKind) -> Result<Token, ParseError> {
+    fn consume(&mut self, expected: TokenKind) -> Result<Token, BitBoxError> {
         match self.stream.next() {
             Some(actual) if actual.kind == expected => Ok(actual),
-            Some(actual) => Err(ParseError::UnexpectedToken {
-                expected: format!("{:?}", expected),
-                found: format!("{:?}", actual.kind),
-                span: actual.span,
+            Some(actual) => Err(BitBoxError::UnexpectedToken {
+                expected,
+                actual,
+                // TODO: later let consume take in a help string,
+                help: None,
             }),
-            None => Err(ParseError::UnexpectedEndOfStream),
+            None => Err(BitBoxError::UnexpectedEndOfStream),
         }
     }
 
@@ -52,9 +44,9 @@ impl Parser {
         self.stream.peek().is_none()
     }
 
-    fn next(&mut self) -> Result<Token, ParseError> {
+    fn next(&mut self) -> Result<Token, BitBoxError> {
         let Some(token) = self.stream.next() else {
-            return Err(ParseError::UnexpectedEndOfStream);
+            return Err(BitBoxError::UnexpectedEndOfStream);
         };
         Ok(token)
     }
@@ -67,7 +59,7 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> Result<ssa::Program, ParseError> {
+    pub fn parse(&mut self) -> Result<ssa::Program, BitBoxError> {
         let mut imports = vec![];
         let mut functions = vec![];
         let mut constants = vec![];
@@ -87,7 +79,7 @@ impl Parser {
         })
     }
 
-    fn parse_top_level(&mut self) -> Result<TopLevel, ParseError> {
+    fn parse_top_level(&mut self) -> Result<TopLevel, BitBoxError> {
         let visibility = self.parse_visibility();
         if self.is_peek_a(TokenKind::Keyword(token::Keyword::Function)) {
             Ok(TopLevel::Function(self.parse_function(visibility)?))
@@ -97,15 +89,14 @@ impl Parser {
             Ok(TopLevel::Constant(self.parse_constant()?))
         } else {
             let tok = self.next()?;
-            Err(ParseError::UnexpectedToken {
-                expected: "top-level construct".to_string(),
-                found: tok.lexeme,
-                span: tok.span,
-            })
+            Err(BitBoxError::ExpectedTopLevelItem(tok))
         }
     }
 
-    fn parse_function(&mut self, visibility: ssa::Visibility) -> Result<ssa::Function, ParseError> {
+    fn parse_function(
+        &mut self,
+        visibility: ssa::Visibility,
+    ) -> Result<ssa::Function, BitBoxError> {
         self.consume(TokenKind::Keyword(token::Keyword::Function))?;
         let func_name = self.consume(TokenKind::Identifier)?;
         let params = self.parse_function_params()?;
@@ -121,7 +112,7 @@ impl Parser {
         })
     }
 
-    fn parse_function_params(&mut self) -> Result<Vec<ssa::Variable>, ParseError> {
+    fn parse_function_params(&mut self) -> Result<Vec<ssa::Variable>, BitBoxError> {
         self.consume(TokenKind::LeftParen)?;
         let mut params = vec![];
 
@@ -143,7 +134,7 @@ impl Parser {
         Ok(params)
     }
 
-    fn parse_function_block(&mut self) -> Result<Vec<ssa::BasicBlock>, ParseError> {
+    fn parse_function_block(&mut self) -> Result<Vec<ssa::BasicBlock>, BitBoxError> {
         let mut blocks = vec![];
         self.consume(TokenKind::LeftBrace)?;
         while !self.end_of_stream() && !self.is_peek_a(TokenKind::RightBrace) {
@@ -154,7 +145,7 @@ impl Parser {
         Ok(blocks)
     }
 
-    fn parse_basic_block(&mut self) -> Result<ssa::BasicBlock, ParseError> {
+    fn parse_basic_block(&mut self) -> Result<ssa::BasicBlock, BitBoxError> {
         let mut instructions = vec![];
 
         while !self.end_of_stream() && !self.is_peek_a(TokenKind::RightBrace) {
@@ -173,7 +164,7 @@ impl Parser {
         })
     }
 
-    fn parse_instruction(&mut self) -> Result<Option<ssa::Instruction>, ParseError> {
+    fn parse_instruction(&mut self) -> Result<Option<ssa::Instruction>, BitBoxError> {
         let tok = self.next()?;
         let Token {
             kind: TokenKind::Instruction(instruction),
@@ -181,11 +172,7 @@ impl Parser {
             span,
         } = tok
         else {
-            return Err(ParseError::UnexpectedToken {
-                expected: "valid instruction name".to_string(),
-                found: tok.lexeme,
-                span: tok.span,
-            });
+            return Err(BitBoxError::InvalidInstruction(tok));
         };
         match instruction {
             token::Instruction::Ret => self.parse_return(),
@@ -193,15 +180,10 @@ impl Parser {
             token::Instruction::Sub => self.parse_sub(),
             token::Instruction::Call => self.parse_call(),
             token::Instruction::Phi => self.parse_phi(),
-            _ => Err(ParseError::UnexpectedToken {
-                expected: "valid instruction".to_string(),
-                found: lexeme,
-                span,
-            }),
         }
     }
 
-    fn parse_arguments(&mut self) -> Result<Vec<ssa::Operand>, ParseError> {
+    fn parse_arguments(&mut self) -> Result<Vec<ssa::Operand>, BitBoxError> {
         self.consume(TokenKind::LeftParen)?;
         let mut args = vec![];
         while !self.end_of_stream() && !self.is_peek_a(TokenKind::RightParen) {
@@ -216,7 +198,7 @@ impl Parser {
         Ok(args)
     }
 
-    fn parse_operand(&mut self) -> Result<ssa::Operand, ParseError> {
+    fn parse_operand(&mut self) -> Result<ssa::Operand, BitBoxError> {
         if self.is_peek_a(TokenKind::Number) {
             let tok = self.consume(TokenKind::Number)?;
             return Ok(ssa::Operand::Constant(tok));
@@ -225,7 +207,7 @@ impl Parser {
         Ok(ssa::Operand::Variable(tok))
     }
 
-    fn parse_import_function_params(&mut self) -> Result<Vec<ssa::Type>, ParseError> {
+    fn parse_import_function_params(&mut self) -> Result<Vec<ssa::Type>, BitBoxError> {
         let mut params = vec![];
         self.consume(TokenKind::LeftParen)?;
         while !self.end_of_stream() {
@@ -240,7 +222,7 @@ impl Parser {
         Ok(params)
     }
 
-    fn parse_import(&mut self) -> Result<ssa::Import, ParseError> {
+    fn parse_import(&mut self) -> Result<ssa::Import, BitBoxError> {
         self.consume(TokenKind::Keyword(token::Keyword::Import))?;
         self.consume(TokenKind::Keyword(token::Keyword::Function))?;
         let module_name = self.consume(TokenKind::Identifier)?;
@@ -257,27 +239,21 @@ impl Parser {
         }))
     }
 
-    fn parse_constant_value(&mut self) -> Result<ssa::ConstantValue, ParseError> {
+    fn parse_constant_value(&mut self) -> Result<ssa::ConstantValue, BitBoxError> {
         let tok = self.next()?;
         match tok.kind {
-            TokenKind::String => {
-                return Ok(ssa::ConstantValue::String(tok.lexeme));
-            }
+            TokenKind::String => Ok(ssa::ConstantValue::String(tok.lexeme)),
             TokenKind::Directive(directive) => match directive {
                 token::Directive::Len => {
                     let value = self.consume(TokenKind::Identifier)?;
                     Ok(ssa::ConstantValue::Directive(ssa::Directive::Len(value)))
                 }
             },
-            _ => Err(ParseError::UnexpectedToken {
-                expected: "a value for a constant".to_string(),
-                found: tok.lexeme,
-                span: tok.span,
-            }),
+            _ => Err(BitBoxError::InvalidContantValue(tok)),
         }
     }
 
-    fn parse_constant(&mut self) -> Result<ssa::Constant, ParseError> {
+    fn parse_constant(&mut self) -> Result<ssa::Constant, BitBoxError> {
         self.consume(TokenKind::Keyword(token::Keyword::Const))?;
         let name = self.consume(TokenKind::Identifier)?;
         self.consume(TokenKind::Colon)?;
@@ -288,17 +264,12 @@ impl Parser {
         Ok(ssa::Constant { name, ty, value })
     }
 
-    fn parse_type(&mut self) -> Result<ssa::Type, ParseError> {
+    fn parse_type(&mut self) -> Result<ssa::Type, BitBoxError> {
         let tok = self.next()?;
         match tok.kind {
-            TokenKind::Identifier => {
-                tok.into_ssa_type()
-                    .map_err(|ident| ParseError::UnexpectedToken {
-                        expected: "Type".to_string(),
-                        found: ident.lexeme,
-                        span: ident.span,
-                    })
-            }
+            TokenKind::Identifier => tok
+                .into_ssa_type()
+                .map_err(|tok| BitBoxError::ExpectedType(tok)),
             TokenKind::Star => {
                 let ty = self.parse_type()?;
                 Ok(ssa::Type::Pointer(Box::new(ty)))
@@ -313,15 +284,11 @@ impl Parser {
                     Box::new(ty),
                 ))
             }
-            _ => Err(ParseError::UnexpectedToken {
-                expected: "Type".to_string(),
-                found: tok.lexeme,
-                span: tok.span,
-            }),
+            _ => Err(BitBoxError::ExpectedType(tok)),
         }
     }
 
-    fn parse_return(&mut self) -> Result<Option<ssa::Instruction>, ParseError> {
+    fn parse_return(&mut self) -> Result<Option<ssa::Instruction>, BitBoxError> {
         let ty = self.parse_type()?;
         self.consume(TokenKind::Colon)?;
         let value = self.parse_operand()?;
@@ -329,7 +296,7 @@ impl Parser {
         Ok(Some(ssa::Instruction::Return(ty, value)))
     }
 
-    fn parse_add(&mut self) -> Result<Option<ssa::Instruction>, ParseError> {
+    fn parse_add(&mut self) -> Result<Option<ssa::Instruction>, BitBoxError> {
         let ty = self.parse_type()?;
         self.consume(TokenKind::Colon)?;
         let name = self.consume(TokenKind::Identifier)?;
@@ -346,7 +313,7 @@ impl Parser {
         Ok(Some(ssa::Instruction::Add(des, lhs, rhs)))
     }
 
-    fn parse_sub(&mut self) -> Result<Option<ssa::Instruction>, ParseError> {
+    fn parse_sub(&mut self) -> Result<Option<ssa::Instruction>, BitBoxError> {
         let ty = self.parse_type()?;
         self.consume(TokenKind::Colon)?;
         let name = self.consume(TokenKind::Identifier)?;
@@ -363,7 +330,7 @@ impl Parser {
         Ok(Some(ssa::Instruction::Sub(des, lhs, rhs)))
     }
 
-    fn parse_call(&mut self) -> Result<Option<ssa::Instruction>, ParseError> {
+    fn parse_call(&mut self) -> Result<Option<ssa::Instruction>, BitBoxError> {
         let ty = self.parse_type()?;
         self.consume(TokenKind::Colon)?;
         let result_name = self.consume(TokenKind::Identifier)?;
@@ -378,7 +345,7 @@ impl Parser {
         Ok(Some(ssa::Instruction::Call(des, name, arguments)))
     }
 
-    fn parse_phi(&self) -> Result<Option<ssa::Instruction>, ParseError> {
+    fn parse_phi(&self) -> Result<Option<ssa::Instruction>, BitBoxError> {
         todo!("implement phi instruciton parser")
     }
 }
