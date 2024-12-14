@@ -25,6 +25,7 @@ impl Token {
 pub enum TokenKind {
     Colon,
     Comma,
+    Delimiter,
     Directive(Directive),
     Dot,
     Equals,

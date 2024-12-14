@@ -28,6 +28,10 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    fn peek(&mut self, expected: char) -> bool {
+        matches!(self.chars.peek(), Some(value) if *value == expected)
+    }
+
     fn spanned(&mut self, kind: TokenKind, lexeme: impl Into<String>) -> Token {
         let span = self.span.clone();
         self.span = self.span.end..self.span.end;
@@ -111,28 +115,36 @@ impl<'a> Lexer<'a> {
         self.spanned(TokenKind::Directive(kind), lexeme)
     }
 
-    fn skip(&mut self) -> Option<Token> {
+    fn parse_delimiter(&mut self) -> Token {
+        while let Some(_) = self.next_if(|value| value == '\n') {}
+        self.spanned(TokenKind::Delimiter, "\\n")
+    }
+
+    fn skip_char(&mut self) -> Option<Token> {
         self.spanned(TokenKind::InvalidToken, ' ');
         self.parse()
+    }
+
+    fn double_char(&mut self, kind: TokenKind, value: impl Into<String>) -> Option<Token> {
+        self.next();
+        Some(self.spanned(kind, value))
     }
 
     fn parse(&mut self) -> Option<Token> {
         match self.next() {
             Some(value @ '0'..='9') => Some(self.parse_number(value)),
             Some(value) if value.is_ascii_alphabetic() => Some(self.parse_identifier(value)),
-            Some(value) if value.is_ascii_whitespace() => self.skip(),
-            Some('#') if self.chars.peek() == Some(&'"') => Some(self.parse_string()),
-            Some('.') if self.chars.peek() != Some(&' ') => Some(self.parse_directive()),
-            Some(':') if self.chars.peek() == Some(&':') => {
-                self.next();
-                Some(self.spanned(TokenKind::PathSeparator, "::"))
-            }
+            Some('\n') => Some(self.parse_delimiter()),
+            Some(value) if value.is_ascii_whitespace() => self.skip_char(),
+            Some('#') if self.peek('"') => Some(self.parse_string()),
+            Some('.') if !self.peek(' ') => Some(self.parse_directive()),
+            Some(':') if self.peek(':') => self.double_char(TokenKind::PathSeparator, "::"),
             Some('@') => Some(self.parse_builtin()),
             Some('+') => Some(self.spanned(TokenKind::Plus, '+')),
             Some('(') => Some(self.spanned(TokenKind::LeftParen, '(')),
             Some(')') => Some(self.spanned(TokenKind::RightParen, ')')),
-            Some('{') => Some(self.spanned(TokenKind::LeftBrace, '{')),
-            Some('}') => Some(self.spanned(TokenKind::RightBrace, '}')),
+            Some('{') if self.peek('\n') => self.double_char(TokenKind::LeftBrace, '{'),
+            Some('}') if self.peek('\n') => self.double_char(TokenKind::RightBrace, '}'),
             Some('[') => Some(self.spanned(TokenKind::LeftBracket, '[')),
             Some(']') => Some(self.spanned(TokenKind::RightBracket, ']')),
             Some(':') => Some(self.spanned(TokenKind::Colon, ':')),

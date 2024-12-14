@@ -28,7 +28,7 @@ impl BitBoxError {
                 .with_message("invalid token found")
                 .build(),
             Self::InvalidContantValue(token) => ReportBuilder::new(filename, src, &token.span)
-                .with_message("invalid constant value")
+                .with_message(format!("invalid constant value '{}'", token.lexeme))
                 .with_note("expected a directive, number or string")
                 .build(),
             Self::InvalidInstruction(token) => ReportBuilder::new(filename, src, &token.span)

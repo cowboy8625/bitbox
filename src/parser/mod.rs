@@ -225,7 +225,7 @@ impl Parser {
         let name = self.consume(TokenKind::Identifier)?;
         let params = self.parse_import_function_params()?;
         let return_type = self.parse_type()?;
-        self.consume(TokenKind::Semicolon)?;
+        self.consume(TokenKind::Delimiter)?;
         Ok(ssa::Import::Function(ssa::FunctionSpec {
             module_name,
             name,
@@ -255,7 +255,7 @@ impl Parser {
         let ty = self.parse_type()?;
         self.consume(TokenKind::Equals)?;
         let value = self.parse_constant_value()?;
-        self.consume(TokenKind::Semicolon)?;
+        self.consume(TokenKind::Delimiter)?;
         Ok(ssa::Constant { name, ty, value })
     }
 
@@ -287,7 +287,7 @@ impl Parser {
         let ty = self.parse_type()?;
         self.consume(TokenKind::Colon)?;
         let value = self.parse_operand()?;
-        self.consume(TokenKind::Semicolon)?;
+        self.consume(TokenKind::Delimiter)?;
         Ok(Some(ssa::Instruction::Return(ty, value)))
     }
 
@@ -304,7 +304,7 @@ impl Parser {
         let lhs = self.parse_operand()?;
         self.consume(TokenKind::Comma)?;
         let rhs = self.parse_operand()?;
-        self.consume(TokenKind::Semicolon)?;
+        self.consume(TokenKind::Delimiter)?;
         Ok(Some(ssa::Instruction::Add(des, lhs, rhs)))
     }
 
@@ -321,7 +321,7 @@ impl Parser {
         let lhs = self.parse_operand()?;
         self.consume(TokenKind::Comma)?;
         let rhs = self.parse_operand()?;
-        self.consume(TokenKind::Semicolon)?;
+        self.consume(TokenKind::Delimiter)?;
         Ok(Some(ssa::Instruction::Sub(des, lhs, rhs)))
     }
 
@@ -336,7 +336,7 @@ impl Parser {
         };
         let name = self.consume(TokenKind::Identifier)?;
         let arguments = self.parse_arguments()?;
-        self.consume(TokenKind::Semicolon)?;
+        self.consume(TokenKind::Delimiter)?;
         Ok(Some(ssa::Instruction::Call(des, name, arguments)))
     }
 
