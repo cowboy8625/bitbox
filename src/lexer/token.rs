@@ -33,6 +33,8 @@ pub enum TokenKind {
     Instruction(Instruction),
     InvalidToken,
     Keyword(Keyword),
+    Label,
+    LabelDefinition,
     LeftBrace,
     LeftBracket,
     LeftParen,
@@ -50,10 +52,14 @@ pub enum TokenKind {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Instruction {
     Add,
+    Mul,
     Call,
     Phi,
     Ret,
     Sub,
+    Cmp,
+    JumpIf,
+    Jump,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
